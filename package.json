@@ -5,8 +5,8 @@
   "author": "TAKAHASHI Shuuji <shuuji3@gmail.com>",
   "license": "AGPL-3.0-or-later",
   "scripts": {
-    "dev": "parcel serve src/index.html --dist-dir docs",
-    "build": "parcel build src/index.html --dist-dir docs"
+    "dev": "parcel serve src/index.html --dist-dir docs --public-url .",
+    "build": "parcel build src/index.html --dist-dir docs --public-url ."
   },
   "devDependencies": {
     "@parcel/transformer-sass": "^2.0.1",
