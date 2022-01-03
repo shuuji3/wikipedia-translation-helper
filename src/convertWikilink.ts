@@ -5,7 +5,7 @@ function findWikiLinks(wikitext: string) {
     return [...wikiLinkSet].map(link => link.split('|')).filter(s => s.length <= 2);
 }
 
-export async function replaceWikitext(wikitext: string) {
+export async function convertWikilink(wikitext: string) {
     let replacedWikitext = wikitext
     const links = findWikiLinks(wikitext);
     for (const [articleName, label] of links) {
