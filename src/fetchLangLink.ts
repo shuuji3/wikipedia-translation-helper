@@ -15,14 +15,15 @@ async function fetchLangLink(articleName: string): Promise<string|null> {
     }
 
     const params = {
+        format: "json",
         action: "query",
         titles: articleName,
         prop: "langlinks",
-        format: "json",
         lllang: "ja",
+        origin: '*',
     };
 
-    let url = "https://en.wikipedia.org/w/api.php?origin=*";
+    let url = "https://en.wikipedia.org/w/api.php?";
     Object.keys(params).forEach(function (key) {
         // @ts-ignore
         url += "&" + key + "=" + params[key];
