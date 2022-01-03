@@ -6,6 +6,14 @@ async function fetchLangLink(articleName: string): Promise<string|null> {
         MIT License
     */
 
+    if (articleName in localStorage) {
+        const langlink = localStorage.getItem(articleName) as string;
+        if (langlink === '') {
+            return null;
+        }
+        return langlink;
+    }
+
     const params = {
         action: "query",
         titles: articleName,
@@ -24,14 +32,20 @@ async function fetchLangLink(articleName: string): Promise<string|null> {
     const req = await fetch(url);
     const json = await req.json();
     if (!('pages' in json.query)) {
+        localStorage.setItem(articleName, '');
         return null;
     }
     const pageID = parseInt(Object.keys(json.query.pages)[0]);
     const langlinks = json.query.pages[pageID].langlinks;
     if (!langlinks) {
+        localStorage.setItem(articleName, '');
         return null;
     }
-    return langlinks[0]['*']
+
+    const langlink = langlinks[0]['*'];
+    localStorage.setItem(articleName, langlink);
+
+    return langlink;
 }
 
 export default fetchLangLink;
