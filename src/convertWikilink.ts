@@ -16,9 +16,14 @@ export async function convertWikilink(wikitext: string) {
         showStatus(`Converting "${articleName}"...`)
 
         const langlink = await fetchLangLink(articleName)
-        const targetRegex = new RegExp(String.raw`\[\[${articleName}]]`, 'g');
-        const newWikiLink =
-            langlink === null ? `{{ill|${articleName}|en|${articleName}}}` : `[[${langlink}]]`;
+        const targetRegex = new RegExp(String.raw`\[\[${articleName}${label ? `|${label}` : ''}]]`, 'g');
+        let newWikiLink: string;
+        if (langlink === null) {
+            const translatedArticleName = await googleTranslate(articleName);
+            newWikiLink = `{{ill|${translatedArticleName}|en|${articleName}${label ? `|label=${label}` : ''}}}`;
+        } else {
+            newWikiLink = `[[${langlink}${label ? `|${label}` : ''}]]`;
+        }
         replacedWikitext = replacedWikitext.replace(targetRegex, newWikiLink);
     }
 
