@@ -23,8 +23,11 @@ async function fetchLangLink(articleName: string): Promise<string|null> {
 
     const req = await fetch(url);
     const json = await req.json();
-    const pageID = parseInt(Object.keys(json.query.pages)[0])
-    const langlinks = json.query.pages[pageID].langlinks
+    if (!('pages' in json.query)) {
+        return null;
+    }
+    const pageID = parseInt(Object.keys(json.query.pages)[0]);
+    const langlinks = json.query.pages[pageID].langlinks;
     if (!langlinks) {
         return null;
     }
