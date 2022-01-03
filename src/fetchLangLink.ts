@@ -32,7 +32,7 @@ async function fetchLangLink(articleName: string): Promise<string|null> {
 
     const req = await fetch(url);
     const json = await req.json();
-    if (!('pages' in json.query)) {
+    if (!('query' in json) || !('pages' in json.query)) {
         localStorage.setItem(articleName, '');
         return null;
     }
