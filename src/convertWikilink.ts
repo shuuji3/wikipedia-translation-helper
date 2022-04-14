@@ -1,5 +1,6 @@
 import fetchLangLink from "./fetchLangLink";
 import showStatus from "./showStatus";
+import googleTranslate from "./googleTranslate";
 
 function findWikiLinks(wikitext: string) {
     let wikiLinkSet = new Set([...wikitext.matchAll(/\[\[(.+?)]]/g)].map(m => m[1])).keys();
