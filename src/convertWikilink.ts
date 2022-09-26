@@ -17,7 +17,7 @@ export async function convertWikilink(wikitext: string) {
         showStatus(`Converting "${articleName}"...`)
 
         const langlink = await fetchLangLink(articleName)
-        const targetRegex = new RegExp(String.raw`\[\[${articleName}${label ? `|${label}` : ''}]]`, 'g');
+        const targetRegex = new RegExp(String.raw`\[\[${articleName}${label ? `\\|${label}` : ''}]]`, 'g');
         let newWikiLink: string;
         if (langlink === null) {
             const translatedArticleName = await googleTranslate(articleName);
