@@ -1,27 +1,43 @@
 <script setup lang="ts">
+interface TranslationBlock {
+  id: string
+  tagName: string
+  html: string
+  vault: string[]
+}
+
 const config = useRuntimeConfig()
 const title = ref('')
 const isFetching = ref(false)
 const translatingId = ref<string | null>(null)
 const selectedId = ref<string | null>(null)
 const selectedTextSnippet = ref('')
-const originalHtml = ref('')
+const blocks = ref<TranslationBlock[]>([])
 const translatedContent = ref<{ [key: string]: string }>({})
-const vault = ref<string[]>([])
 
 async function fetchArticle() {
   if (!title.value || isFetching.value) return
 
   isFetching.value = true
-  originalHtml.value = ''
+  blocks.value = []
   selectedId.value = null
   selectedTextSnippet.value = ''
   translatedContent.value = {}
-  vault.value = []
   try {
     const apiPath = `${window.location.origin}${config.app.baseURL}api/wiki/parse?title=${encodeURIComponent(title.value)}`
     const data = await $fetch<{ title: string; html: string }>(apiPath)
-    originalHtml.value = data.html
+    
+    // Parse HTML into blocks
+    const parser = new DOMParser()
+    const doc = parser.parseFromString(data.html, 'text/html')
+    const elements = Array.from(doc.body.children)
+    
+    blocks.value = elements.map((el, index) => ({
+      id: el.id || `block-${index}`,
+      tagName: el.tagName,
+      html: el.outerHTML,
+      vault: []
+    }))
   } catch (error) {
     console.error('Failed to fetch article:', error)
     alert('Failed to fetch article. Please check the title and try again.')
@@ -30,9 +46,9 @@ async function fetchArticle() {
   }
 }
 
-function prepareTranslationText(target: HTMLElement): string {
+function prepareTranslationText(target: HTMLElement, blockVault: string[]): string {
   const clone = target.cloneNode(true) as HTMLElement
-  const currentVault: string[] = []
+  blockVault.length = 0 // Clear the array
 
   // Handle all elements with 'typeof' (templates, refs, math, etc.)
   // and Wikilinks
@@ -44,23 +60,20 @@ function prepareTranslationText(target: HTMLElement): string {
       const href = el.getAttribute('href') || ''
       const title = decodeURIComponent(href.replace(/^\.\//, '')).replace(/_/g, ' ')
       const label = el.textContent || ''
-      // Use XML-like tag with title and a placeholder for the proposed Japanese title
-      // The LLM will be instructed to translate both the 'ja' attribute and the tag content
       const linkTag = `<wp_link title="${title}" ja="${title}">${label}</wp_link>`
       el.replaceWith(document.createTextNode(linkTag))
     } else if (el.hasAttribute('typeof')) {
       // It's a special Wikipedia element (Template, Ref, etc.)
-      const index = currentVault.length
-      currentVault.push(el.outerHTML)
+      const index = blockVault.length
+      blockVault.push(el.outerHTML)
       el.replaceWith(document.createTextNode(`<wp_element_${index} />`))
     }
   })
 
-  vault.value = currentVault
   return clone.textContent?.trim() || ''
 }
 
-async function finalizeTranslation(translatedText: string): Promise<string> {
+async function finalizeTranslation(translatedText: string, blockVault: string[]): Promise<string> {
   let finalized = translatedText
 
   // 1. Convert wp_link tags using "Triple Magic" (API check + dynamic formatting)
@@ -96,40 +109,32 @@ async function finalizeTranslation(translatedText: string): Promise<string> {
   })
 
   // 2. Restore wp_element placeholders from vault
-  // Using a more robust regex to handle potential extra spaces around the tag
   finalized = finalized.replace(/<wp_element_(\d+)\s*\/>/g, (match, index) => {
-    return vault.value[parseInt(index)] || match
+    return blockVault[parseInt(index)] || match
   })
 
   return finalized
 }
 
-async function handlePaneClick(event: MouseEvent) {
-  const target = (event.target as HTMLElement).closest('p, h2, h3, li') as HTMLElement
-  if (!target || isFetching.value) return
+async function handleBlockClick(block: TranslationBlock) {
+  if (isFetching.value) return
 
-  const id = target.id
-
-  // Update selection highlight
-  if (selectedId.value) {
-    const prev = document.getElementById(selectedId.value)
-    if (prev) prev.removeAttribute('data-selected')
-  }
+  const id = block.id
   selectedId.value = id
-  target.setAttribute('data-selected', 'true')
 
-  // Phase 4-1: Prepare text with placeholders for LLM
-  const textWithPlaceholders = prepareTranslationText(target)
-  const plainText = target.textContent?.trim() || ''
+  const el = document.getElementById(id)
+  if (!el) return
 
-  // Set snippet for the loading view
+  const textWithPlaceholders = prepareTranslationText(el, block.vault)
+  const plainText = el.textContent?.trim() || ''
+
   selectedTextSnippet.value = plainText.substring(0, 60) + (plainText.length > 60 ? '...' : '')
 
-  console.log('🚀 Phase 4-1 Analysis:', {
+  console.log('🚀 Phase 5 Analysis:', {
     id,
     originalText: plainText,
     textWithPlaceholders: textWithPlaceholders,
-    vaultSize: vault.value.length
+    vaultSize: block.vault.length
   })
 
   // If already translated, just select it
@@ -148,7 +153,7 @@ async function handlePaneClick(event: MouseEvent) {
       body: { text: textWithPlaceholders }
     })
 
-    const finalized = await finalizeTranslation(response.translated)
+    const finalized = await finalizeTranslation(response.translated, block.vault)
     translatedContent.value[id] = finalized
   } catch (error) {
     console.error('Translation failed:', error)
@@ -184,87 +189,86 @@ async function handlePaneClick(event: MouseEvent) {
       </div>
     </header>
 
-    <!-- Main Content: Dual Pane Layout -->
-    <main class="flex-1 flex overflow-hidden">
-      <!-- Left Pane: Original Article -->
-      <section class="w-1/2 border-r border-gray-200 flex flex-col bg-white">
-        <header class="p-6 pb-0 flex-none">
-          <h2 class="text-2xl font-bold border-b pb-2">Original (English)</h2>
-        </header>
-        <div class="flex-1 overflow-y-auto p-6 pt-4">
-          <div v-if="isFetching" class="h-full flex items-center justify-center text-gray-400">
-            <div class="flex flex-col items-center gap-2">
-              <span class="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></span>
-              <p>Fetching article from Wikipedia...</p>
-            </div>
-          </div>
-          <div v-else-if="originalHtml" class="prose max-w-none prose-slate">
-            <div
-              v-html="originalHtml"
-              class="wikipedia-content"
-              @click="handlePaneClick"
-            ></div>
-          </div>
-          <div v-else class="h-full flex items-center justify-center text-gray-400">
-            <p>Enter a title and click "Fetch" to start translating.</p>
-          </div>
+    <!-- Main Content: Parallel Row Layout -->
+    <main class="flex-1 overflow-y-auto">
+      <div v-if="isFetching" class="h-full flex items-center justify-center text-gray-400 bg-white">
+        <div class="flex flex-col items-center gap-2">
+          <span class="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></span>
+          <p>Fetching article from Wikipedia...</p>
         </div>
-      </section>
+      </div>
+      
+      <div v-else-if="blocks.length > 0" class="flex flex-col">
+        <div 
+          v-for="block in blocks" 
+          :key="block.id" 
+          class="flex border-b border-gray-100 min-h-[4rem] group hover:bg-blue-50/20 transition-colors cursor-pointer"
+          :data-selected="selectedId === block.id"
+          @click="handleBlockClick(block)"
+        >
+          <!-- Left Column: English Original -->
+          <div 
+            class="w-1/2 p-6 bg-white border-r border-gray-100 prose max-w-none prose-slate relative"
+          >
+            <div v-html="block.html" class="wikipedia-content"></div>
+            <!-- Selection indicator -->
+            <div v-if="selectedId === block.id" class="absolute left-0 top-0 bottom-0 w-1 bg-blue-600"></div>
+          </div>
 
-      <!-- Right Pane: Translation View -->
-      <section class="w-1/2 flex flex-col bg-gray-50">
-        <header class="p-6 pb-0 flex-none">
-          <h2 class="text-2xl font-bold border-b pb-2 text-gray-700">Translation (Japanese)</h2>
-        </header>
-        <div class="flex-1 overflow-y-auto p-6 pt-4">
-          <div class="prose max-w-none prose-slate h-full flex flex-col">
-            <div v-if="originalHtml">
-              <!-- Translation Loading or Result -->
-              <div v-if="selectedId" class="mb-8">
-                <!-- Loading State -->
-                <div v-if="translatingId === selectedId" class="p-6 bg-white border border-gray-200 rounded-lg shadow-sm border-l-4 border-l-blue-500">
-                  <div class="flex items-center gap-3 mb-4">
-                    <span class="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></span>
-                    <p class="text-sm font-semibold text-gray-700 m-0">Translating...</p>
-                  </div>
-                  <blockquote class="border-none p-0 m-0 italic text-gray-500 text-sm">
-                    "{{ selectedTextSnippet }}"
-                  </blockquote>
-                  <div class="mt-4 space-y-2 opacity-20">
-                    <div class="h-3 bg-gray-400 rounded w-full"></div>
-                    <div class="h-3 bg-gray-400 rounded w-5/6"></div>
-                    <div class="h-3 bg-gray-400 rounded w-4/6"></div>
-                  </div>
-                </div>
-
-                <!-- Translation Result -->
-                <div v-else-if="translatedContent[selectedId]" class="p-6 bg-white border border-gray-200 rounded-lg shadow-sm border-l-4 border-l-green-500">
-                  <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2 m-0">Translation</h3>
-                  <div
-                    class="text-lg text-gray-800 leading-relaxed m-0 whitespace-pre-wrap"
-                    v-html="translatedContent[selectedId]"
-                  ></div>
-                </div>
+          <!-- Right Column: Japanese Translation -->
+          <div class="w-1/2 p-6 bg-gray-50/50 prose max-w-none prose-slate relative">
+            <!-- Loading State -->
+            <div v-if="translatingId === block.id" class="flex flex-col gap-3">
+              <div class="flex items-center gap-2 text-blue-600">
+                <span class="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></span>
+                <span class="text-sm font-bold">Translating...</span>
               </div>
-
-              <p v-else class="text-sm text-gray-500 italic mb-4">Click a paragraph on the left to start translating.</p>
+              <div class="space-y-2 opacity-20">
+                <div class="h-3 bg-gray-400 rounded w-full"></div>
+                <div class="h-3 bg-gray-400 rounded w-5/6"></div>
+              </div>
             </div>
-            <div v-else class="flex-1 flex items-center justify-center text-gray-400">
-              <p>Translations will appear here.</p>
+
+            <!-- Translation Content -->
+            <div v-else-if="translatedContent[block.id]" class="relative">
+              <div
+                class="text-lg text-gray-800 leading-relaxed whitespace-pre-wrap"
+                v-html="translatedContent[block.id]"
+              ></div>
+            </div>
+
+            <!-- Placeholder when not translated -->
+            <div v-else class="h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <div class="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2">
+                <span>Click to translate</span>
+                <span class="text-lg">→</span>
+              </div>
             </div>
           </div>
         </div>
-      </section>
+      </div>
+
+      <div v-else class="h-full flex items-center justify-center text-gray-400 bg-white min-h-[400px]">
+        <div class="text-center">
+          <p class="text-xl mb-2">Ready to Translate</p>
+          <p class="text-sm">Enter a title above and click "Fetch" to start.</p>
+        </div>
+      </div>
     </main>
   </div>
 </template>
 
 <style>
+/* Basic Wikipedia content styling within blocks */
 .wikipedia-content { line-height: 1.6; }
 .wikipedia-content p, .wikipedia-content h2, .wikipedia-content h3, .wikipedia-content li {
-  padding: 0.25rem 0.5rem; margin-left: -0.5rem; margin-right: -0.5rem; border-radius: 0.25rem; transition: background-color 0.2s; cursor: pointer;
+  margin: 0;
 }
-.wikipedia-content p:hover, .wikipedia-content h2:hover, .wikipedia-content h3:hover, .wikipedia-content li:hover { background-color: rgba(59, 130, 246, 0.1); }
-.wikipedia-content [data-selected="true"] { background-color: rgba(59, 130, 246, 0.15) !important; box-shadow: inset 4px 0 0 0 #2563eb; }
-.wikipedia-content p { margin-bottom: 1rem; }
+.wikipedia-content h2 { font-size: 1.5rem; font-weight: bold; border-bottom: 1px solid #eee; margin-bottom: 0.5rem; }
+.wikipedia-content h3 { font-size: 1.25rem; font-weight: bold; }
+
+/* Selection highlight for the row */
+[data-selected="true"] {
+  background-color: rgba(59, 130, 246, 0.03);
+}
 </style>

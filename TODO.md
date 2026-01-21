@@ -26,8 +26,11 @@
 - [ ] Add a "Copy to Clipboard" button for the generated Wikitext.
 
 ### Phase 5: Parallel Editor & Refinement
-- [ ] Refactor article storage to a block-based system (Parallel Rows).
-- [ ] Implement side-by-side aligned layout for English and Japanese segments.
-- [ ] Migrate "Vault" to be per-block to support multiple persistent translations.
+- [x] Refactor article storage to a block-based system (Parallel Rows).
+- [x] Implement side-by-side aligned layout for English and Japanese segments.
+- [x] Migrate "Vault" to be per-block to support multiple persistent translations.
 - [ ] Make translated blocks editable for manual correction.
 - [ ] Implement a feature to copy the entire translated article as Wikitext.
+
+## Known Issues
+- [ ] Intermittent "NetworkError / No Response" during long translation tasks (Firefox/General).
