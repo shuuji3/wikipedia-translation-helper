@@ -18,7 +18,7 @@
 - [x] Display translated text in the right pane.
 
 ### Phase 4: Wikipedia-specific Enhancements
-- [ ] Implement LLM-based link analysis to identify Wikipedia articles.
+- [x] Implement LLM-based link analysis to identify Wikipedia articles.
 - [ ] Integrate API calls to check for Japanese Wikipedia counterparts.
 - [ ] Automatically convert links to `{{ill}}` or internal links.
 - [ ] Add a "Copy to Clipboard" button for the generated Wikitext.

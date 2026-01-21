@@ -28,6 +28,18 @@ async function fetchArticle() {
   }
 }
 
+function getWikitextFromElement(target: HTMLElement): string {
+  const clone = target.cloneNode(true) as HTMLElement
+  clone.querySelectorAll('a[rel="mw:WikiLink"]').forEach(el => {
+    const href = el.getAttribute('href') || ''
+    const title = decodeURIComponent(href.replace(/^\.\//, '')).replace(/_/g, ' ')
+    const label = el.textContent || ''
+    const wikilink = title === label ? `[[${title}]]` : `[[${title}|${label}]]`
+    el.replaceWith(document.createTextNode(wikilink))
+  })
+  return clone.textContent?.trim() || ''
+}
+
 async function handlePaneClick(event: MouseEvent) {
   const target = (event.target as HTMLElement).closest('p, h2, h3, li') as HTMLElement
   if (!target || isFetching.value) return
@@ -42,9 +54,12 @@ async function handlePaneClick(event: MouseEvent) {
   selectedId.value = id
   target.setAttribute('data-selected', 'true')
 
+  // Phase 4-1: Extract text with Wikilinks
+  const textWithLinks = getWikitextFromElement(target)
+  const plainText = target.textContent?.trim() || ''
+
   // Set snippet for the loading view
-  const text = target.textContent?.trim() || ''
-  selectedTextSnippet.value = text.substring(0, 60) + (text.length > 60 ? '...' : '')
+  selectedTextSnippet.value = plainText.substring(0, 60) + (plainText.length > 60 ? '...' : '')
 
   // If already translated, just select it
   if (translatedContent.value[id]) {
@@ -59,7 +74,7 @@ async function handlePaneClick(event: MouseEvent) {
     const apiPath = `${window.location.origin}${config.app.baseURL}api/translate`
     const response = await $fetch<{ original: string; translated: string }>(apiPath, {
       method: 'POST',
-      body: { text }
+      body: { text: textWithLinks }
     })
     translatedContent.value[id] = response.translated
   } catch (error) {
