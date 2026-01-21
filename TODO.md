@@ -17,10 +17,11 @@
 - [x] Implement loading states for paragraph translation.
 - [x] Display translated text in the right pane.
 
-### Phase 4: Wikipedia-specific Enhancements
-- [x] Implement LLM-based link analysis to identify Wikipedia articles.
-- [ ] Integrate API calls to check for Japanese Wikipedia counterparts.
-- [ ] Automatically convert links to `{{ill}}` or internal links.
+### Phase 4: Wikipedia-specific Enhancements (The Vault & Triple Magic)
+- [ ] Implement a general placeholder system (`<wp_element_n />`) to protect all `typeof` elements (templates, refs, math, etc.).
+- [ ] Create a server-side API (`server/api/wiki/langlink.get.ts`) to check for Japanese article counterparts.
+- [ ] Implement the "Triple Magic" link conversion (API check + `[[...]]` or `{{ill}}` formatting).
+- [ ] Integrate link conversion and placeholder restoration into the translation flow.
 - [ ] Add a "Copy to Clipboard" button for the generated Wikitext.
 
 ### Phase 5: Editor Improvements & Refinement
