@@ -11,7 +11,7 @@ const vault = ref<string[]>([])
 
 async function fetchArticle() {
   if (!title.value || isFetching.value) return
-  
+
   isFetching.value = true
   originalHtml.value = ''
   selectedId.value = null
@@ -37,7 +37,7 @@ function prepareTranslationText(target: HTMLElement): string {
   // Handle all elements with 'typeof' (templates, refs, math, etc.)
   // and Wikilinks
   const specialElements = clone.querySelectorAll('[typeof], a[rel="mw:WikiLink"]')
-  
+
   specialElements.forEach(el => {
     // Check if it's a Wikilink
     if (el.tagName === 'A' && el.getAttribute('rel') === 'mw:WikiLink') {
@@ -63,7 +63,7 @@ async function handlePaneClick(event: MouseEvent) {
   if (!target || isFetching.value) return
 
   const id = target.id
-  
+
   // Update selection highlight
   if (selectedId.value) {
     const prev = document.getElementById(selectedId.value)
@@ -79,7 +79,7 @@ async function handlePaneClick(event: MouseEvent) {
   // Set snippet for the loading view
   selectedTextSnippet.value = plainText.substring(0, 60) + (plainText.length > 60 ? '...' : '')
 
-  console.log('Phase 4-1 Analysis:', {
+  console.log('🚀 Phase 4-1 Analysis:', {
     id,
     originalText: plainText,
     textWithPlaceholders: textWithPlaceholders,
@@ -152,8 +152,8 @@ async function handlePaneClick(event: MouseEvent) {
             </div>
           </div>
           <div v-else-if="originalHtml" class="prose max-w-none prose-slate">
-            <div 
-              v-html="originalHtml" 
+            <div
+              v-html="originalHtml"
               class="wikipedia-content"
               @click="handlePaneClick"
             ></div>
