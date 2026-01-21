@@ -14,6 +14,28 @@ const selectedId = ref<string | null>(null)
 const selectedTextSnippet = ref('')
 const blocks = ref<TranslationBlock[]>([])
 const translatedContent = ref<{ [key: string]: string }>({})
+const bodyClass = ref('')
+
+// Utility to inject Wikipedia styles into the app's head
+function injectStyles(doc: Document) {
+  bodyClass.value = doc.body.className
+
+  const headElements = doc.querySelectorAll('link[rel="stylesheet"], style')
+  headElements.forEach((el) => {
+    const clone = el.cloneNode(true) as HTMLElement
+    if (clone.tagName === 'LINK') {
+      const href = clone.getAttribute('href')
+      if (href && href.startsWith('/')) {
+        clone.setAttribute('href', `https://en.wikipedia.org${href}`)
+      }
+    }
+    const href = clone.getAttribute('href') || (clone.textContent ? 'inline-style' : '')
+    const existing = document.head.querySelector(`[href="${href}"]`)
+    if (!existing) {
+      document.head.appendChild(clone)
+    }
+  })
+}
 
 async function fetchArticle() {
   if (!title.value || isFetching.value) return
@@ -23,21 +45,35 @@ async function fetchArticle() {
   selectedId.value = null
   selectedTextSnippet.value = ''
   translatedContent.value = {}
+  bodyClass.value = ''
+  
   try {
     const apiPath = `${window.location.origin}${config.app.baseURL}api/wiki/parse?title=${encodeURIComponent(title.value)}`
     const data = await $fetch<{ title: string; html: string }>(apiPath)
     
-    // Parse HTML into blocks
     const parser = new DOMParser()
     const doc = parser.parseFromString(data.html, 'text/html')
-    const elements = Array.from(doc.body.children)
     
-    blocks.value = elements.map((el, index) => ({
-      id: el.id || `block-${index}`,
-      tagName: el.tagName,
-      html: el.outerHTML,
-      vault: []
-    }))
+    injectStyles(doc)
+    
+    const collectedBlocks: TranslationBlock[] = []
+    function processContainer(container: Element) {
+      Array.from(container.children).forEach((el) => {
+        if (el.tagName === 'SECTION') {
+          processContainer(el)
+        } else {
+          collectedBlocks.push({
+            id: el.id || `block-${collectedBlocks.length}`,
+            tagName: el.tagName,
+            html: el.outerHTML,
+            vault: []
+          })
+        }
+      })
+    }
+    
+    processContainer(doc.body)
+    blocks.value = collectedBlocks
   } catch (error) {
     console.error('Failed to fetch article:', error)
     alert('Failed to fetch article. Please check the title and try again.')
@@ -88,18 +124,31 @@ async function finalizeTranslation(translatedText: string, blockVault: string[])
       const data = await $fetch<{ jaTitle: string | null }>(apiPath)
 
       if (data.jaTitle) {
-        // Option A: Japanese article exists!
-        const replacement = data.jaTitle === label ? `[[${data.jaTitle}]]` : `[[${data.jaTitle}|${label}]]`
+        // Option A: Japanese article exists! Create a proper <a> tag for Parsoid
+        const replacement = `<a rel="mw:WikiLink" href="./${encodeURIComponent(data.jaTitle)}" title="${data.jaTitle}">${label}</a>`
         return { fullTag, replacement }
       } else {
-        // Option B: No Japanese article yet. Use {{ill}}
-        const replacement = `{{ill|${jaTitleLLM}|en|${enTitle}|label=${label}}}`
+        // Option B: No Japanese article yet. Create mw:Transclusion HTML for {{ill}}
+        const dataMw = JSON.stringify({
+          parts: [{
+            template: {
+              target: { wt: "Ill", href: "./Template:Ill" },
+              params: {
+                "1": { wt: jaTitleLLM },
+                "2": { wt: "en" },
+                "3": { wt: enTitle },
+                "label": { wt: label }
+              },
+              i: 0
+            }
+          }]
+        })
+        const replacement = `<span typeof="mw:Transclusion" data-mw='${dataMw.replace(/'/g, "&apos;")}'>${label}</span>`
         return { fullTag, replacement }
       }
     } catch (e) {
       console.error('Langlink API failed for:', enTitle, e)
-      // Fallback to LLM's proposed jaTitle as a simple link
-      return { fullTag, replacement: jaTitleLLM === label ? `[[${jaTitleLLM}]]` : `[[${jaTitleLLM}|${label}]]` }
+      return { fullTag, replacement: label }
     }
   }))
 
@@ -122,27 +171,30 @@ async function handleBlockClick(block: TranslationBlock) {
   const id = block.id
   selectedId.value = id
 
+  // Handle non-content tags (style, link, meta, etc.) automatically
+  const nonContentTags = ['STYLE', 'LINK', 'META', 'NOSCRIPT']
+  if (nonContentTags.includes(block.tagName)) {
+    translatedContent.value[id] = block.html
+    return
+  }
+
   const el = document.getElementById(id)
   if (!el) return
 
+  // Phase 4-1: Prepare text with placeholders for LLM
   const textWithPlaceholders = prepareTranslationText(el, block.vault)
   const plainText = el.textContent?.trim() || ''
 
   selectedTextSnippet.value = plainText.substring(0, 60) + (plainText.length > 60 ? '...' : '')
 
-  console.log('🚀 Phase 5 Analysis:', {
+  console.log('🚀 Phase 4-1 Analysis:', {
     id,
     originalText: plainText,
     textWithPlaceholders: textWithPlaceholders,
     vaultSize: block.vault.length
   })
 
-  // If already translated, just select it
-  if (translatedContent.value[id]) {
-    return
-  }
-
-  // Start translation if not already in progress
+  if (translatedContent.value[id]) return
   if (translatingId.value === id) return
 
   translatingId.value = id
@@ -198,11 +250,12 @@ async function handleBlockClick(block: TranslationBlock) {
         </div>
       </div>
       
-      <div v-else-if="blocks.length > 0" class="flex flex-col">
+      <div v-else-if="blocks.length > 0" :class="['flex flex-col', bodyClass]">
         <div 
           v-for="block in blocks" 
           :key="block.id" 
           class="flex border-b border-gray-100 min-h-[4rem] group hover:bg-blue-50/20 transition-colors cursor-pointer"
+          :class="{ 'hidden': ['STYLE', 'LINK', 'META', 'NOSCRIPT'].includes(block.tagName) }"
           :data-selected="selectedId === block.id"
           @click="handleBlockClick(block)"
         >
@@ -216,7 +269,7 @@ async function handleBlockClick(block: TranslationBlock) {
           </div>
 
           <!-- Right Column: Japanese Translation -->
-          <div class="w-1/2 p-6 bg-gray-50/50 prose max-w-none prose-slate relative">
+          <div class="w-1/2 p-6 bg-white prose max-w-none prose-slate relative">
             <!-- Loading State -->
             <div v-if="translatingId === block.id" class="flex flex-col gap-3">
               <div class="flex items-center gap-2 text-blue-600">
@@ -239,7 +292,10 @@ async function handleBlockClick(block: TranslationBlock) {
 
             <!-- Placeholder when not translated -->
             <div v-else class="h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <div class="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2">
+              <div 
+                v-if="!['STYLE', 'LINK', 'META', 'NOSCRIPT'].includes(block.tagName)"
+                class="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2"
+              >
                 <span>Click to translate</span>
                 <span class="text-lg">→</span>
               </div>
