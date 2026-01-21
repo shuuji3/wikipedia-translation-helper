@@ -273,7 +273,7 @@ function copyToClipboard() {
     <!-- Header: Search and Control -->
     <header class="bg-white border-b border-gray-200 p-4 sticky top-0 z-10 shadow-sm">
       <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-4">
-        <h1 class="text-xl font-bold text-gray-800 mr-4">wikipedia-translation-helper</h1>
+        <div class="brand-title">🌐 wikipedia-translation-helper</div>
         <div class="flex-1 min-w-[300px] flex gap-2">
           <input
             v-model="title"
@@ -404,6 +404,17 @@ function copyToClipboard() {
 </template>
 
 <style>
+/* Brand Title: Protect from Wikipedia CSS side-effects while maintaining style */
+.brand-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin-right: 1rem;
+  border-bottom: 1px solid #a2a9b1;
+  padding-bottom: 2px;
+  line-height: 1.2;
+}
+
 /* Basic Wikipedia content styling within blocks */
 .wikipedia-content { line-height: 1.6; }
 .wikipedia-content p, .wikipedia-content h2, .wikipedia-content h3, .wikipedia-content li {
