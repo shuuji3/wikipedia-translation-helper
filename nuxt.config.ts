@@ -5,5 +5,8 @@ export default defineNuxtConfig({
     compatibilityVersion: 4,
   },
   modules: ['@nuxtjs/tailwindcss'],
-  devtools: { enabled: true }
+  devtools: { enabled: true },
+  runtimeConfig: {
+    geminiApiKey: process.env.GEMINI_API_KEY,
+  }
 })
