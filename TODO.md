@@ -22,3 +22,8 @@
 - [ ] Integrate API calls to check for Japanese Wikipedia counterparts.
 - [ ] Automatically convert links to `{{ill}}` or internal links.
 - [ ] Add a "Copy to Clipboard" button for the generated Wikitext.
+
+### Phase 5: Editor Improvements & Refinement
+- [ ] Maintain a list of all translated paragraphs in the right pane.
+- [ ] Make translated blocks editable for manual correction.
+- [ ] Implement a feature to copy the entire translated article as Wikitext.
