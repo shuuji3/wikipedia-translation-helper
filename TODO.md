@@ -21,8 +21,8 @@
 - [x] Implement a general placeholder system (`<wp_element_n />`) to protect all `typeof` elements (templates, refs, math, etc.).
 - [x] Create a server-side API (`server/api/wiki/langlink.get.ts`) to check for Japanese article counterparts.
 - [x] Introduce XML-like link tags (`<wp_link title="..." ja="...">`) to prevent LLM from stripping links.
-- [ ] Implement the dynamic "Triple Magic" link conversion (API check + `[[...]]` or `{{ill}}` formatting).
-- [ ] Restore protected elements from the vault and finalize the Wikitext output.
+- [x] Implement the dynamic "Triple Magic" link conversion (API check + `[[...]]` or `{{ill}}` formatting).
+- [x] Restore protected elements from the vault and finalize the Wikitext output.
 - [ ] Add a "Copy to Clipboard" button for the generated Wikitext.
 
 ### Phase 5: Editor Improvements & Refinement
