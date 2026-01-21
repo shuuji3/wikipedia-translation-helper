@@ -84,6 +84,25 @@ const fetchArticle = async () => {
   line-height: 1.6;
 }
 
+.wikipedia-content p,
+.wikipedia-content h2,
+.wikipedia-content h3,
+.wikipedia-content li {
+  padding: 0.25rem 0.5rem;
+  margin-left: -0.5rem;
+  margin-right: -0.5rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.wikipedia-content p:hover,
+.wikipedia-content h2:hover,
+.wikipedia-content h3:hover,
+.wikipedia-content li:hover {
+  background-color: rgba(59, 130, 246, 0.1); /* Light blue background on hover */
+}
+
 .wikipedia-content p {
   margin-bottom: 1rem;
 }
