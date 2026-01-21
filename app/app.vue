@@ -3,7 +3,7 @@ const title = ref('')
 const originalHtml = ref('')
 const translatedContent = ref<{ [key: string]: string }>({})
 
-const fetchArticle = async () => {
+async function fetchArticle() {
   if (!title.value) return
   
   try {
@@ -13,6 +13,16 @@ const fetchArticle = async () => {
     console.error('Failed to fetch article:', error)
     alert('Failed to fetch article. Please check the title and try again.')
   }
+}
+
+function handlePaneClick(event: MouseEvent) {
+  const target = (event.target as HTMLElement).closest('p, h2, h3, li')
+  if (!target) return
+
+  const text = target.textContent?.trim()
+  const id = target.id
+
+  console.log('Clicked element:', { id, text })
 }
 </script>
 
@@ -49,7 +59,11 @@ const fetchArticle = async () => {
         </header>
         <div class="flex-1 overflow-y-auto p-6 pt-4">
           <div class="prose max-w-none prose-slate" v-if="originalHtml">
-            <div v-html="originalHtml" class="wikipedia-content"></div>
+            <div 
+              v-html="originalHtml" 
+              class="wikipedia-content"
+              @click="handlePaneClick"
+            ></div>
           </div>
           <div v-else class="h-full flex items-center justify-center text-gray-400">
             <p>Enter a title and click "Fetch" to start translating.</p>

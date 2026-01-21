@@ -13,7 +13,7 @@
 - [x] Display raw Parsoid HTML in the left pane.
 
 ### Phase 3: Translation Logic & UI
-- [ ] Add click event listeners to paragraphs in the left pane.
+- [x] Add click event listeners to paragraphs in the left pane.
 - [ ] Implement loading states for paragraph translation.
 - [ ] Display translated text in the right pane.
 
