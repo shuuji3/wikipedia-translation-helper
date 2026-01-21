@@ -12,10 +12,19 @@ export default defineEventHandler(async (event) => {
   // Wikipedia Parsoid API URL
   const url = `https://en.wikipedia.org/api/rest_v1/page/html/${encodeURIComponent(title)}`
 
+  const config = useRuntimeConfig(event)
+
+  if (!config.wikipediaUserAgent) {
+    throw createError({
+      statusCode: 500,
+      statusMessage: 'WIKIPEDIA_USER_AGENT is not configured',
+    })
+  }
+
   try {
     const response = await $fetch<string>(url, {
       headers: {
-        'User-Agent': process.env.WIKIPEDIA_USER_AGENT || 'WikipediaTranslationHelper/1.0',
+        'User-Agent': config.wikipediaUserAgent,
       },
     })
 

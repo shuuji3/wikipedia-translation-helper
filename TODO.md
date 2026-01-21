@@ -15,7 +15,7 @@
 ### Phase 3: Translation Logic & UI
 - [x] Add click event listeners to paragraphs in the left pane.
 - [x] Implement loading states for paragraph translation.
-- [ ] Display translated text in the right pane.
+- [x] Display translated text in the right pane.
 
 ### Phase 4: Wikipedia-specific Enhancements
 - [ ] Implement LLM-based link analysis to identify Wikipedia articles.

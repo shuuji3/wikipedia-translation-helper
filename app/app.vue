@@ -2,6 +2,7 @@
 const title = ref('')
 const isFetching = ref(false)
 const selectedId = ref<string | null>(null)
+const translatingId = ref<string | null>(null)
 const selectedTextSnippet = ref('')
 const originalHtml = ref('')
 const translatedContent = ref<{ [key: string]: string }>({})
@@ -13,6 +14,7 @@ async function fetchArticle() {
   originalHtml.value = ''
   selectedId.value = null
   selectedTextSnippet.value = ''
+  translatedContent.value = {}
   try {
     const data = await $fetch<{ title: string; html: string }>(`/api/wiki/parse?title=${encodeURIComponent(title.value)}`)
     originalHtml.value = data.html
@@ -24,23 +26,44 @@ async function fetchArticle() {
   }
 }
 
-function handlePaneClick(event: MouseEvent) {
+async function handlePaneClick(event: MouseEvent) {
   const target = (event.target as HTMLElement).closest('p, h2, h3, li') as HTMLElement
-  if (!target) return
+  if (!target || isFetching.value) return
 
-  // Remove data-selected from previously selected element
+  const id = target.id
+  
+  // Update selection highlight
   if (selectedId.value) {
     const prev = document.getElementById(selectedId.value)
     if (prev) prev.removeAttribute('data-selected')
   }
-
-  const id = target.id
   selectedId.value = id
   target.setAttribute('data-selected', 'true')
 
+  // Set snippet for the loading view
   const text = target.textContent?.trim() || ''
   selectedTextSnippet.value = text.substring(0, 60) + (text.length > 60 ? '...' : '')
-  console.log('Selected element:', { id, text })
+
+  // If already translated, just select it
+  if (translatedContent.value[id]) {
+    return
+  }
+
+  // Start translation if not already in progress
+  if (translatingId.value === id) return
+
+  translatingId.value = id
+  try {
+    const response = await $fetch<{ original: string; translated: string }>('/api/translate', {
+      method: 'POST',
+      body: { text }
+    })
+    translatedContent.value[id] = response.translated
+  } catch (error) {
+    console.error('Translation failed:', error)
+  } finally {
+    translatingId.value = null
+  }
 }
 </script>
 
@@ -105,22 +128,34 @@ function handlePaneClick(event: MouseEvent) {
         <div class="flex-1 overflow-y-auto p-6 pt-4">
           <div class="prose max-w-none prose-slate h-full flex flex-col">
             <div v-if="originalHtml">
-              <div v-if="selectedId" class="mb-8 p-6 bg-white border border-gray-200 rounded-lg shadow-sm border-l-4 border-l-blue-500">
-                <div class="flex items-center gap-3 mb-4">
-                  <span class="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></span>
-                  <p class="text-sm font-semibold text-gray-700 m-0">Translating...</p>
+              <!-- Translation Loading or Result -->
+              <div v-if="selectedId" class="mb-8">
+                <!-- Loading State -->
+                <div v-if="translatingId === selectedId" class="p-6 bg-white border border-gray-200 rounded-lg shadow-sm border-l-4 border-l-blue-500">
+                  <div class="flex items-center gap-3 mb-4">
+                    <span class="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></span>
+                    <p class="text-sm font-semibold text-gray-700 m-0">Translating...</p>
+                  </div>
+                  <blockquote class="border-none p-0 m-0 italic text-gray-500 text-sm">
+                    "{{ selectedTextSnippet }}"
+                  </blockquote>
+                  <div class="mt-4 space-y-2 opacity-20">
+                    <div class="h-3 bg-gray-400 rounded w-full"></div>
+                    <div class="h-3 bg-gray-400 rounded w-5/6"></div>
+                    <div class="h-3 bg-gray-400 rounded w-4/6"></div>
+                  </div>
                 </div>
-                <blockquote class="border-none p-0 m-0 italic text-gray-500 text-sm">
-                  "{{ selectedTextSnippet }}"
-                </blockquote>
-                <div class="mt-4 space-y-2 opacity-20">
-                  <div class="h-3 bg-gray-400 rounded w-full"></div>
-                  <div class="h-3 bg-gray-400 rounded w-5/6"></div>
-                  <div class="h-3 bg-gray-400 rounded w-4/6"></div>
+
+                <!-- Translation Result -->
+                <div v-else-if="translatedContent[selectedId]" class="p-6 bg-white border border-gray-200 rounded-lg shadow-sm border-l-4 border-l-green-500">
+                  <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2 m-0">Translation</h3>
+                  <p class="text-lg text-gray-800 leading-relaxed m-0 whitespace-pre-wrap">
+                    {{ translatedContent[selectedId] }}
+                  </p>
                 </div>
               </div>
+
               <p v-else class="text-sm text-gray-500 italic mb-4">Click a paragraph on the left to start translating.</p>
-              <!-- Translated blocks will appear here -->
             </div>
             <div v-else class="flex-1 flex items-center justify-center text-gray-400">
               <p>Translations will appear here.</p>
