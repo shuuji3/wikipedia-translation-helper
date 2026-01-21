@@ -44,8 +44,9 @@ function prepareTranslationText(target: HTMLElement): string {
       const href = el.getAttribute('href') || ''
       const title = decodeURIComponent(href.replace(/^\.\//, '')).replace(/_/g, ' ')
       const label = el.textContent || ''
-      // Use XML-like tag for links to prevent LLM from stripping them
-      const linkTag = `<wp_link title="${title}">${label}</wp_link>`
+      // Use XML-like tag with title and a placeholder for the proposed Japanese title
+      // The LLM will be instructed to translate both the 'ja' attribute and the tag content
+      const linkTag = `<wp_link title="${title}" ja="${title}">${label}</wp_link>`
       el.replaceWith(document.createTextNode(linkTag))
     } else if (el.hasAttribute('typeof')) {
       // It's a special Wikipedia element (Template, Ref, etc.)
