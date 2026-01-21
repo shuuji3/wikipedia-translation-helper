@@ -37,15 +37,16 @@ function prepareTranslationText(target: HTMLElement): string {
   // Handle all elements with 'typeof' (templates, refs, math, etc.)
   // and Wikilinks
   const specialElements = clone.querySelectorAll('[typeof], a[rel="mw:WikiLink"]')
-
+  
   specialElements.forEach(el => {
     // Check if it's a Wikilink
     if (el.tagName === 'A' && el.getAttribute('rel') === 'mw:WikiLink') {
       const href = el.getAttribute('href') || ''
       const title = decodeURIComponent(href.replace(/^\.\//, '')).replace(/_/g, ' ')
       const label = el.textContent || ''
-      const wikilink = title === label ? `[[${title}]]` : `[[${title}|${label}]]`
-      el.replaceWith(document.createTextNode(wikilink))
+      // Use XML-like tag for links to prevent LLM from stripping them
+      const linkTag = `<wp_link title="${title}">${label}</wp_link>`
+      el.replaceWith(document.createTextNode(linkTag))
     } else if (el.hasAttribute('typeof')) {
       // It's a special Wikipedia element (Template, Ref, etc.)
       const index = currentVault.length
@@ -57,6 +58,7 @@ function prepareTranslationText(target: HTMLElement): string {
   vault.value = currentVault
   return clone.textContent?.trim() || ''
 }
+
 
 async function handlePaneClick(event: MouseEvent) {
   const target = (event.target as HTMLElement).closest('p, h2, h3, li') as HTMLElement
