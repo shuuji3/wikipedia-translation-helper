@@ -25,7 +25,9 @@
 - [x] Restore protected elements from the vault and finalize the Wikitext output.
 - [ ] Add a "Copy to Clipboard" button for the generated Wikitext.
 
-### Phase 5: Editor Improvements & Refinement
-- [ ] Maintain a list of all translated paragraphs in the right pane.
+### Phase 5: Parallel Editor & Refinement
+- [ ] Refactor article storage to a block-based system (Parallel Rows).
+- [ ] Implement side-by-side aligned layout for English and Japanese segments.
+- [ ] Migrate "Vault" to be per-block to support multiple persistent translations.
 - [ ] Make translated blocks editable for manual correction.
 - [ ] Implement a feature to copy the entire translated article as Wikitext.
