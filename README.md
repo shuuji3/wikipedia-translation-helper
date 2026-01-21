@@ -1,31 +1,17 @@
 # 🌐 Wikipedia Translation Helper
 
-The **Wikipedia Translation Helper** is a specialized tool designed to optimize the Wikipedia article translation process. By leveraging Large Language Models (Gemini API) and the official Wikipedia Parsoid API, it automates tedious tasks like interwiki link conversion (`{{ill}}`) while preserving the complex structure of Wikipedia articles.
+A tool designed to assist with translating Wikipedia articles. It leverages the MediaWiki Parsoid API to maintain article structure while providing LLM-assisted translation and automated interlanguage link ({{ill}}) conversion.
 
-## ✨ Key Features
+## Key Features
 
-- **Parallel Block-based Editor**: Articles are split into logical segments (paragraphs, headings, lists). Translate English and Japanese side-by-side with perfect alignment.
-- **"Triple Magic" Link Conversion**: 
-  - Automatically checks if a linked English article has a Japanese counterpart via the Wikipedia API.
-  - If a Japanese article exists, it creates a standard `[[...]]` link.
-  - If not, it automatically formats an `{{ill}}` (Interlanguage link) template to ensure no information is lost.
-- **Vault Protection System**: Sophisticated placeholder system protects Wikipedia-specific elements (Templates, References, Math, etc.) during LLM translation, ensuring the technical structure remains intact.
-- **Pure HTML Round-trip**: Fetches clean Parsoid HTML and reconstructs it back into valid Wikitext using the official serialization API.
-- **Smart Link Handling**: Intelligent extraction and restoration of internal links to maintain semantic integrity.
+- **Parallel Block-based Editor**: Splits articles into segments (paragraphs, headings, etc.) for side-by-side viewing and editing of original and translated text.
+- **Automated Link Conversion**:
+  - Verifies the existence of linked articles on the target language Wikipedia via API.
+  - Automatically converts links to standard internal links if they exist, or to the `{{ill}}` template format if they do not.
+- **Element Protection**: Protects Wikipedia-specific elements such as templates, references, and mathematical formulas during translation to prevent structural corruption.
+- **Wikitext Export**: Reconstructs edited content and exports it as Wikitext via the Parsoid API for easy copying and usage.
 
-## 🛠️ Tech Stack
-
-- **Framework**: Nuxt 4 (Modern Full-stack Vue)
-- **Styling**: Tailwind CSS
-- **AI**: Google Gemini API (gemini-3-flash-preview)
-- **API**: Wikipedia REST API (Parsoid)
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js (Latest LTS)
-- pnpm
+## Setup
 
 ### Installation
 
@@ -35,7 +21,11 @@ pnpm install
 
 ### Configuration
 
-Create a `.env` file in the root directory and add your credentials:
+Copy `.env.example` to `.env` and configure the environment variables (Gemini API Key and User-Agent).
+
+```bash
+cp .env.example .env
+```
 
 ```env
 # Google Gemini API Key
@@ -45,29 +35,27 @@ NUXT_GEMINI_API_KEY=your_api_key_here
 NUXT_WIKIPEDIA_USER_AGENT=WikipediaTranslationHelper/1.0 (contact@example.com)
 ```
 
-### Development
+## Development and Usage
 
-Start the development server:
+### Development Mode
 
 ```bash
 pnpm dev
 ```
 
-Visit `http://localhost:3000` to start translating.
-
-### Production Build
+### Build and Preview
 
 ```bash
 pnpm build
 pnpm preview
 ```
 
-## 📂 Project Structure
+## Project Structure
 
 - `/app`: Frontend implementation (Nuxt 4)
 - `/server`: API endpoints for translation, parsing, and serialization
 - `/archive`: Legacy implementation of the tool (for reference)
 
-## 📄 License
+## License
 
 MIT
