@@ -25,12 +25,15 @@
 - [x] Restore protected elements from the vault and finalize the Wikitext output.
 - [ ] Add a "Copy to Clipboard" button for the generated Wikitext.
 
-### Phase 5: Parallel Editor & Refinement
+### Phase 5: Pure HTML Parallel Editor & Round-trip
 - [x] Refactor article storage to a block-based system (Parallel Rows).
 - [x] Implement side-by-side aligned layout for English and Japanese segments.
 - [x] Migrate "Vault" to be per-block to support multiple persistent translations.
-- [ ] Make translated blocks editable for manual correction.
-- [ ] Implement a feature to copy the entire translated article as Wikitext.
+- [ ] Refine `finalizeTranslation` to output pure Parsoid-compatible HTML (no raw Wikitext).
+    - [ ] Internal links as `<a>` tags with updated `href` and `title`.
+    - [ ] `{{ill}}` as `mw:Transclusion` HTML elements.
+- [ ] Create `server/api/wiki/serialize.post.ts` to convert integrated HTML back to Wikitext.
+- [ ] Implement a feature to reconstruct the full article HTML and convert it to Wikitext.
 
 ## Known Issues
 - [ ] Intermittent "NetworkError / No Response" during long translation tasks (Firefox/General).
