@@ -4,7 +4,7 @@
 - [x] Configure `runtimeConfig` to securely handle `GEMINI_API_KEY`.
 - [x] Create a central constant for the LLM translation prompt.
 - [x] Implement a basic POST API endpoint (`server/api/translate.post.ts`) that returns a dummy response.
-- [ ] Integrate Google Generative AI SDK (or $fetch to Gemini API) into the endpoint.
+- [x] Integrate Google Generative AI SDK (or $fetch to Gemini API) into the endpoint.
 - [ ] Verify translation results using the specialized academic prompt.
 
 ### Phase 2: Frontend Layout
