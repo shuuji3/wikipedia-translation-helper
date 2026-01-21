@@ -1,4 +1,10 @@
 export default defineEventHandler(async (event) => {
+  // Set standard headers to keep connection alive when translation takes time
+  setHeaders(event, {
+    'Connection': 'keep-alive',
+    'Keep-Alive': 'timeout=300'
+  })
+
   const config = useRuntimeConfig(event)
   const apiKey = config.geminiApiKey
   const body = await readBody(event)
