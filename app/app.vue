@@ -63,16 +63,42 @@ function prepareTranslationText(target: HTMLElement): string {
 async function finalizeTranslation(translatedText: string): Promise<string> {
   let finalized = translatedText
 
-  // 1. Restore wp_element placeholders from vault
-  vault.value.forEach((html, index) => {
-    const placeholder = `<wp_element_${index} />`
-    finalized = finalized.replace(placeholder, html)
+  // 1. Convert wp_link tags using "Triple Magic" (API check + dynamic formatting)
+  const linkRegex = /<wp_link title="([^"]+)" ja="([^"]+)">([^<]+)<\/wp_link>/g
+  const matches = [...finalized.matchAll(linkRegex)]
+
+  // Fetch langlinks for all found English titles in parallel
+  const replacements = await Promise.all(matches.map(async (match) => {
+    const [fullTag, enTitle, jaTitleLLM, label] = match
+    try {
+      const apiPath = `${window.location.origin}${config.app.baseURL}api/wiki/langlink?title=${encodeURIComponent(enTitle)}`
+      const data = await $fetch<{ jaTitle: string | null }>(apiPath)
+
+      if (data.jaTitle) {
+        // Option A: Japanese article exists!
+        const replacement = data.jaTitle === label ? `[[${data.jaTitle}]]` : `[[${data.jaTitle}|${label}]]`
+        return { fullTag, replacement }
+      } else {
+        // Option B: No Japanese article yet. Use {{ill}}
+        const replacement = `{{ill|${jaTitleLLM}|en|${enTitle}|label=${label}}}`
+        return { fullTag, replacement }
+      }
+    } catch (e) {
+      console.error('Langlink API failed for:', enTitle, e)
+      // Fallback to LLM's proposed jaTitle as a simple link
+      return { fullTag, replacement: jaTitleLLM === label ? `[[${jaTitleLLM}]]` : `[[${jaTitleLLM}|${label}]]` }
+    }
+  }))
+
+  // Apply link replacements
+  replacements.forEach(({ fullTag, replacement }) => {
+    finalized = finalized.replace(fullTag, replacement)
   })
 
-  // 2. Convert wp_link tags to Wikitext format [[JA|Label]]
-  const linkRegex = /<wp_link title="([^"]+)" ja="([^"]+)">([^<]+)<\/wp_link>/g
-  finalized = finalized.replace(linkRegex, (match, title, ja, label) => {
-    return ja === label ? `[[${ja}]]` : `[[${ja}|${label}]]`
+  // 2. Restore wp_element placeholders from vault
+  // Using a more robust regex to handle potential extra spaces around the tag
+  finalized = finalized.replace(/<wp_element_(\d+)\s*\/>/g, (match, index) => {
+    return vault.value[parseInt(index)] || match
   })
 
   return finalized
