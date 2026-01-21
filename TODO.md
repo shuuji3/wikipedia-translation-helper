@@ -5,10 +5,10 @@
 - [x] Create a central constant for the LLM translation prompt.
 - [x] Implement a basic POST API endpoint (`server/api/translate.post.ts`) that returns a dummy response.
 - [x] Integrate Google Generative AI SDK (or $fetch to Gemini API) into the endpoint.
-- [ ] Verify translation results using the specialized academic prompt.
+- [x] Verify translation results using the specialized academic prompt.
 
 ### Phase 2: Frontend Layout
-- [ ] Set up a dual-pane layout using Tailwind CSS.
+- [x] Set up a dual-pane layout using Tailwind CSS.
 - [ ] Create an input field to fetch Wikipedia articles by title.
 - [ ] Display raw Parsoid HTML in the left pane.
 
