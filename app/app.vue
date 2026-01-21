@@ -37,7 +37,7 @@ function prepareTranslationText(target: HTMLElement): string {
   // Handle all elements with 'typeof' (templates, refs, math, etc.)
   // and Wikilinks
   const specialElements = clone.querySelectorAll('[typeof], a[rel="mw:WikiLink"]')
-  
+
   specialElements.forEach(el => {
     // Check if it's a Wikilink
     if (el.tagName === 'A' && el.getAttribute('rel') === 'mw:WikiLink') {
@@ -60,6 +60,23 @@ function prepareTranslationText(target: HTMLElement): string {
   return clone.textContent?.trim() || ''
 }
 
+async function finalizeTranslation(translatedText: string): Promise<string> {
+  let finalized = translatedText
+
+  // 1. Restore wp_element placeholders from vault
+  vault.value.forEach((html, index) => {
+    const placeholder = `<wp_element_${index} />`
+    finalized = finalized.replace(placeholder, html)
+  })
+
+  // 2. Convert wp_link tags to Wikitext format [[JA|Label]]
+  const linkRegex = /<wp_link title="([^"]+)" ja="([^"]+)">([^<]+)<\/wp_link>/g
+  finalized = finalized.replace(linkRegex, (match, title, ja, label) => {
+    return ja === label ? `[[${ja}]]` : `[[${ja}|${label}]]`
+  })
+
+  return finalized
+}
 
 async function handlePaneClick(event: MouseEvent) {
   const target = (event.target as HTMLElement).closest('p, h2, h3, li') as HTMLElement
@@ -104,7 +121,9 @@ async function handlePaneClick(event: MouseEvent) {
       method: 'POST',
       body: { text: textWithPlaceholders }
     })
-    translatedContent.value[id] = response.translated
+
+    const finalized = await finalizeTranslation(response.translated)
+    translatedContent.value[id] = finalized
   } catch (error) {
     console.error('Translation failed:', error)
   } finally {
@@ -112,7 +131,6 @@ async function handlePaneClick(event: MouseEvent) {
   }
 }
 </script>
-
 
 <template>
   <div class="min-h-screen bg-gray-50 flex flex-col font-sans">
@@ -215,38 +233,11 @@ async function handlePaneClick(event: MouseEvent) {
 </template>
 
 <style>
-/* Base styles for Wikipedia content to make it look clean */
-.wikipedia-content {
-  line-height: 1.6;
+.wikipedia-content { line-height: 1.6; }
+.wikipedia-content p, .wikipedia-content h2, .wikipedia-content h3, .wikipedia-content li {
+  padding: 0.25rem 0.5rem; margin-left: -0.5rem; margin-right: -0.5rem; border-radius: 0.25rem; transition: background-color 0.2s; cursor: pointer;
 }
-
-.wikipedia-content p,
-.wikipedia-content h2,
-.wikipedia-content h3,
-.wikipedia-content li {
-  padding: 0.25rem 0.5rem;
-  margin-left: -0.5rem;
-  margin-right: -0.5rem;
-  border-radius: 0.25rem;
-  transition: background-color 0.2s;
-  cursor: pointer;
-}
-
-.wikipedia-content p:hover,
-.wikipedia-content h2:hover,
-.wikipedia-content h3:hover,
-.wikipedia-content li:hover {
-  background-color: rgba(59, 130, 246, 0.1); /* Light blue background on hover */
-}
-
-.wikipedia-content [data-selected="true"] {
-  background-color: rgba(59, 130, 246, 0.15) !important;
-  box-shadow: inset 4px 0 0 0 #2563eb; /* Blue left border-like indicator */
-}
-
-.wikipedia-content p {
-  margin-bottom: 1rem;
-}
-
-/* We'll refine these styles as we implement paragraph selection */
+.wikipedia-content p:hover, .wikipedia-content h2:hover, .wikipedia-content h3:hover, .wikipedia-content li:hover { background-color: rgba(59, 130, 246, 0.1); }
+.wikipedia-content [data-selected="true"] { background-color: rgba(59, 130, 246, 0.15) !important; box-shadow: inset 4px 0 0 0 #2563eb; }
+.wikipedia-content p { margin-bottom: 1rem; }
 </style>
