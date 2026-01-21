@@ -9,8 +9,8 @@
 
 ### Phase 2: Frontend Layout
 - [x] Set up a dual-pane layout using Tailwind CSS.
-- [ ] Create an input field to fetch Wikipedia articles by title.
-- [ ] Display raw Parsoid HTML in the left pane.
+- [x] Create an input field to fetch Wikipedia articles by title.
+- [x] Display raw Parsoid HTML in the left pane.
 
 ### Phase 3: Translation Logic & UI
 - [ ] Add click event listeners to paragraphs in the left pane.
