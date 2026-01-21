@@ -118,7 +118,10 @@ async function finalizeTranslation(translatedText: string, blockVault: string[])
 
   // Fetch langlinks for all found English titles in parallel
   const replacements = await Promise.all(matches.map(async (match) => {
-    const [fullTag, enTitle, jaTitleLLM, label] = match
+    const fullTag = match[0]
+    const enTitle = match[1] || ''
+    const jaTitleLLM = match[2] || ''
+    const label = match[3] || ''
     try {
       const apiPath = `${window.location.origin}${config.app.baseURL}api/wiki/langlink?title=${encodeURIComponent(enTitle)}`
       const data = await $fetch<{ jaTitle: string | null }>(apiPath)
@@ -154,7 +157,9 @@ async function finalizeTranslation(translatedText: string, blockVault: string[])
 
   // Apply link replacements
   replacements.forEach(({ fullTag, replacement }) => {
-    finalized = finalized.replace(fullTag, replacement)
+    if (fullTag && replacement) {
+      finalized = finalized.replace(fullTag, replacement)
+    }
   })
 
   // 2. Restore wp_element placeholders from vault
@@ -243,10 +248,11 @@ async function handleBlockClick(block: TranslationBlock) {
 
     <!-- Main Content: Parallel Row Layout -->
     <main class="flex-1 overflow-y-auto">
-      <div v-if="isFetching" class="h-full flex items-center justify-center text-gray-400 bg-white">
-        <div class="flex flex-col items-center gap-2">
-          <span class="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></span>
-          <p>Fetching article from Wikipedia...</p>
+      <div v-if="isFetching" class="min-h-[60vh] py-20 flex items-center justify-center text-gray-400 bg-white">
+        <div class="text-center">
+          <span class="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mb-4 inline-block"></span>
+          <p class="text-xl mb-2 text-gray-600">Fetching Article</p>
+          <p class="text-sm">Retrieving content from Wikipedia Parsoid API...</p>
         </div>
       </div>
       
@@ -284,10 +290,12 @@ async function handleBlockClick(block: TranslationBlock) {
 
             <!-- Translation Content -->
             <div v-else-if="translatedContent[block.id]" class="relative">
-              <div
-                class="text-lg text-gray-800 leading-relaxed whitespace-pre-wrap"
-                v-html="translatedContent[block.id]"
-              ></div>
+              <div class="wikipedia-content">
+                <component
+                  :is="block.tagName"
+                  v-html="translatedContent[block.id]"
+                ></component>
+              </div>
             </div>
 
             <!-- Placeholder when not translated -->
@@ -304,9 +312,9 @@ async function handleBlockClick(block: TranslationBlock) {
         </div>
       </div>
 
-      <div v-else class="h-full flex items-center justify-center text-gray-400 bg-white min-h-[400px]">
+      <div v-else class="min-h-[60vh] py-20 flex items-center justify-center text-gray-400 bg-white">
         <div class="text-center">
-          <p class="text-xl mb-2">Ready to Translate</p>
+          <p class="text-xl mb-2 text-gray-600">Ready to Translate</p>
           <p class="text-sm">Enter a title above and click "Fetch" to start.</p>
         </div>
       </div>

@@ -29,9 +29,10 @@
 - [x] Refactor article storage to a block-based system (Parallel Rows).
 - [x] Implement side-by-side aligned layout for English and Japanese segments.
 - [x] Migrate "Vault" to be per-block to support multiple persistent translations.
-- [ ] Refine `finalizeTranslation` to output pure Parsoid-compatible HTML (no raw Wikitext).
-    - [ ] Internal links as `<a>` tags with updated `href` and `title`.
-    - [ ] `{{ill}}` as `mw:Transclusion` HTML elements.
+- [x] Refine `finalizeTranslation` to output pure Parsoid-compatible HTML (no raw Wikitext).
+    - [x] Internal links as `<a>` tags with updated `href` and `title`.
+    - [x] `{{ill}}` as `mw:Transclusion` HTML elements.
+- [x] Improve UI layout for fetch loading and ensure heading tags are preserved in translations.
 - [ ] Create `server/api/wiki/serialize.post.ts` to convert integrated HTML back to Wikitext.
 - [ ] Implement a feature to reconstruct the full article HTML and convert it to Wikitext.
 
