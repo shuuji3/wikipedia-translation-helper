@@ -1,6 +1,8 @@
 <script setup lang="ts">
 const title = ref('')
 const isFetching = ref(false)
+const selectedId = ref<string | null>(null)
+const selectedTextSnippet = ref('')
 const originalHtml = ref('')
 const translatedContent = ref<{ [key: string]: string }>({})
 
@@ -8,6 +10,9 @@ async function fetchArticle() {
   if (!title.value || isFetching.value) return
   
   isFetching.value = true
+  originalHtml.value = ''
+  selectedId.value = null
+  selectedTextSnippet.value = ''
   try {
     const data = await $fetch<{ title: string; html: string }>(`/api/wiki/parse?title=${encodeURIComponent(title.value)}`)
     originalHtml.value = data.html
@@ -20,13 +25,22 @@ async function fetchArticle() {
 }
 
 function handlePaneClick(event: MouseEvent) {
-  const target = (event.target as HTMLElement).closest('p, h2, h3, li')
+  const target = (event.target as HTMLElement).closest('p, h2, h3, li') as HTMLElement
   if (!target) return
 
-  const text = target.textContent?.trim()
-  const id = target.id
+  // Remove data-selected from previously selected element
+  if (selectedId.value) {
+    const prev = document.getElementById(selectedId.value)
+    if (prev) prev.removeAttribute('data-selected')
+  }
 
-  console.log('Clicked element:', { id, text })
+  const id = target.id
+  selectedId.value = id
+  target.setAttribute('data-selected', 'true')
+
+  const text = target.textContent?.trim() || ''
+  selectedTextSnippet.value = text.substring(0, 60) + (text.length > 60 ? '...' : '')
+  console.log('Selected element:', { id, text })
 }
 </script>
 
@@ -91,7 +105,21 @@ function handlePaneClick(event: MouseEvent) {
         <div class="flex-1 overflow-y-auto p-6 pt-4">
           <div class="prose max-w-none prose-slate h-full flex flex-col">
             <div v-if="originalHtml">
-              <p class="text-sm text-gray-500 italic mb-4">Click a paragraph on the left to start translating.</p>
+              <div v-if="selectedId" class="mb-8 p-6 bg-white border border-gray-200 rounded-lg shadow-sm border-l-4 border-l-blue-500">
+                <div class="flex items-center gap-3 mb-4">
+                  <span class="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full"></span>
+                  <p class="text-sm font-semibold text-gray-700 m-0">Translating...</p>
+                </div>
+                <blockquote class="border-none p-0 m-0 italic text-gray-500 text-sm">
+                  "{{ selectedTextSnippet }}"
+                </blockquote>
+                <div class="mt-4 space-y-2 opacity-20">
+                  <div class="h-3 bg-gray-400 rounded w-full"></div>
+                  <div class="h-3 bg-gray-400 rounded w-5/6"></div>
+                  <div class="h-3 bg-gray-400 rounded w-4/6"></div>
+                </div>
+              </div>
+              <p v-else class="text-sm text-gray-500 italic mb-4">Click a paragraph on the left to start translating.</p>
               <!-- Translated blocks will appear here -->
             </div>
             <div v-else class="flex-1 flex items-center justify-center text-gray-400">
@@ -127,6 +155,11 @@ function handlePaneClick(event: MouseEvent) {
 .wikipedia-content h3:hover,
 .wikipedia-content li:hover {
   background-color: rgba(59, 130, 246, 0.1); /* Light blue background on hover */
+}
+
+.wikipedia-content [data-selected="true"] {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  box-shadow: inset 4px 0 0 0 #2563eb; /* Blue left border-like indicator */
 }
 
 .wikipedia-content p {
