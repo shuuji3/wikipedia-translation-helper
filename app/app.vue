@@ -15,6 +15,8 @@ const selectedTextSnippet = ref('')
 const blocks = ref<TranslationBlock[]>([])
 const translatedContent = ref<{ [key: string]: string }>({})
 const bodyClass = ref('')
+const isSerializing = ref(false)
+const generatedWikitext = ref('')
 
 // Utility to inject Wikipedia styles into the app's head
 function injectStyles(doc: Document) {
@@ -214,9 +216,51 @@ async function handleBlockClick(block: TranslationBlock) {
     translatedContent.value[id] = finalized
   } catch (error) {
     console.error('Translation failed:', error)
-  } finally {
+    } finally {
     translatingId.value = null
   }
+}
+
+async function generateWikitext() {
+  if (blocks.value.length === 0 || isSerializing.value) return
+
+  isSerializing.value = true
+  generatedWikitext.value = ''
+
+  try {
+    // Reconstruct the full HTML by combining translated blocks and original blocks
+    const fullHtml = blocks.value
+      .map((block) => translatedContent.value[block.id] || block.html)
+      .join('')
+
+    const apiPath = `${window.location.origin}${config.app.baseURL}api/wiki/serialize`
+    const response = await $fetch<{ wikitext: string }>(apiPath, {
+      method: 'POST',
+      body: { 
+        html: fullHtml,
+        title: title.value
+      }
+    })
+
+    generatedWikitext.value = response.wikitext
+    
+    // Scroll to the bottom to show the result
+    nextTick(() => {
+      const el = document.getElementById('wikitext-output')
+      el?.scrollIntoView({ behavior: 'smooth' })
+    })
+  } catch (error) {
+    console.error('Serialization failed:', error)
+    alert('Failed to generate Wikitext. Check the console for details.')
+  } finally {
+    isSerializing.value = false
+  }
+}
+
+function copyToClipboard() {
+  if (!generatedWikitext.value) return
+  navigator.clipboard.writeText(generatedWikitext.value)
+  alert('Copied to clipboard! ✨')
 }
 </script>
 
@@ -241,6 +285,17 @@ async function handleBlockClick(block: TranslationBlock) {
           >
             <span v-if="isFetching" class="inline-block animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
             {{ isFetching ? 'Fetching...' : 'Fetch' }}
+          </button>
+        </div>
+        <div class="flex gap-2">
+          <button
+            v-if="blocks.length > 0"
+            @click="generateWikitext"
+            :disabled="isSerializing"
+            class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md font-medium transition-colors disabled:bg-green-400 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <span v-if="isSerializing" class="inline-block animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+            {{ isSerializing ? 'Generating...' : 'Generate Wikitext' }}
           </button>
         </div>
       </div>
@@ -319,6 +374,28 @@ async function handleBlockClick(block: TranslationBlock) {
         </div>
       </div>
     </main>
+
+    <!-- Wikitext Output Section -->
+    <section v-if="generatedWikitext" id="wikitext-output" class="bg-gray-100 border-t border-gray-300 p-8">
+      <div class="max-w-7xl mx-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold text-gray-800">Generated Wikitext</h2>
+          <button
+            @click="copyToClipboard"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
+          >
+            📋 Copy to Clipboard
+          </button>
+        </div>
+        <div class="bg-white border border-gray-300 rounded-md shadow-inner overflow-hidden">
+          <textarea
+            readonly
+            class="w-full h-96 p-4 font-mono text-sm focus:outline-none bg-gray-50/50"
+            :value="generatedWikitext"
+          ></textarea>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 

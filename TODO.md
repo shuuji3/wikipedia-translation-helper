@@ -23,7 +23,7 @@
 - [x] Introduce XML-like link tags (`<wp_link title="..." ja="...">`) to prevent LLM from stripping links.
 - [x] Implement the dynamic "Triple Magic" link conversion (API check + `[[...]]` or `{{ill}}` formatting).
 - [x] Restore protected elements from the vault and finalize the Wikitext output.
-- [ ] Add a "Copy to Clipboard" button for the generated Wikitext.
+- [x] Add a "Copy to Clipboard" button for the generated Wikitext.
 
 ### Phase 5: Pure HTML Parallel Editor & Round-trip
 - [x] Refactor article storage to a block-based system (Parallel Rows).
@@ -33,8 +33,8 @@
     - [x] Internal links as `<a>` tags with updated `href` and `title`.
     - [x] `{{ill}}` as `mw:Transclusion` HTML elements.
 - [x] Improve UI layout for fetch loading and ensure heading tags are preserved in translations.
-- [ ] Create `server/api/wiki/serialize.post.ts` to convert integrated HTML back to Wikitext.
-- [ ] Implement a feature to reconstruct the full article HTML and convert it to Wikitext.
+- [x] Create `server/api/wiki/serialize.post.ts` to convert integrated HTML back to Wikitext.
+- [x] Implement a feature to reconstruct the full article HTML and convert it to Wikitext.
 
 ## Known Issues
 - [ ] Intermittent "NetworkError / No Response" during long translation tasks (Firefox/General).
