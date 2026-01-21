@@ -214,9 +214,10 @@ async function handlePaneClick(event: MouseEvent) {
                 <!-- Translation Result -->
                 <div v-else-if="translatedContent[selectedId]" class="p-6 bg-white border border-gray-200 rounded-lg shadow-sm border-l-4 border-l-green-500">
                   <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2 m-0">Translation</h3>
-                  <p class="text-lg text-gray-800 leading-relaxed m-0 whitespace-pre-wrap">
-                    {{ translatedContent[selectedId] }}
-                  </p>
+                  <div
+                    class="text-lg text-gray-800 leading-relaxed m-0 whitespace-pre-wrap"
+                    v-html="translatedContent[selectedId]"
+                  ></div>
                 </div>
               </div>
 
