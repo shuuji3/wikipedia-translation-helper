@@ -18,8 +18,8 @@
 - [x] Display translated text in the right pane.
 
 ### Phase 4: Wikipedia-specific Enhancements (The Vault & Triple Magic)
-- [ ] Implement a general placeholder system (`<wp_element_n />`) to protect all `typeof` elements (templates, refs, math, etc.).
-- [ ] Create a server-side API (`server/api/wiki/langlink.get.ts`) to check for Japanese article counterparts.
+- [x] Implement a general placeholder system (`<wp_element_n />`) to protect all `typeof` elements (templates, refs, math, etc.).
+- [x] Create a server-side API (`server/api/wiki/langlink.get.ts`) to check for Japanese article counterparts.
 - [ ] Implement the "Triple Magic" link conversion (API check + `[[...]]` or `{{ill}}` formatting).
 - [ ] Integrate link conversion and placeholder restoration into the translation flow.
 - [ ] Add a "Copy to Clipboard" button for the generated Wikitext.
