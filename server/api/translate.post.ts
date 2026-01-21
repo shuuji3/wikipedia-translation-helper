@@ -1,5 +1,6 @@
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig(event)
+  const apiKey = config.geminiApiKey
   const body = await readBody(event)
   const text = body.text
 
@@ -10,11 +11,10 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const apiKey = config.geminiApiKey
   if (!apiKey) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Gemini API key is not configured',
+      statusMessage: 'Gemini API key is not configured (Expected NUXT_GEMINI_API_KEY)',
     })
   }
 

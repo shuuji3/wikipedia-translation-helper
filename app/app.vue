@@ -1,8 +1,9 @@
 <script setup lang="ts">
+const config = useRuntimeConfig()
 const title = ref('')
 const isFetching = ref(false)
-const selectedId = ref<string | null>(null)
 const translatingId = ref<string | null>(null)
+const selectedId = ref<string | null>(null)
 const selectedTextSnippet = ref('')
 const originalHtml = ref('')
 const translatedContent = ref<{ [key: string]: string }>({})
@@ -16,7 +17,8 @@ async function fetchArticle() {
   selectedTextSnippet.value = ''
   translatedContent.value = {}
   try {
-    const data = await $fetch<{ title: string; html: string }>(`/api/wiki/parse?title=${encodeURIComponent(title.value)}`)
+    const apiPath = `${window.location.origin}${config.app.baseURL}api/wiki/parse?title=${encodeURIComponent(title.value)}`
+    const data = await $fetch<{ title: string; html: string }>(apiPath)
     originalHtml.value = data.html
   } catch (error) {
     console.error('Failed to fetch article:', error)
@@ -54,7 +56,8 @@ async function handlePaneClick(event: MouseEvent) {
 
   translatingId.value = id
   try {
-    const response = await $fetch<{ original: string; translated: string }>('/api/translate', {
+    const apiPath = `${window.location.origin}${config.app.baseURL}api/translate`
+    const response = await $fetch<{ original: string; translated: string }>(apiPath, {
       method: 'POST',
       body: { text }
     })
@@ -66,6 +69,7 @@ async function handlePaneClick(event: MouseEvent) {
   }
 }
 </script>
+
 
 <template>
   <div class="min-h-screen bg-gray-50 flex flex-col font-sans">

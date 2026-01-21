@@ -17,7 +17,7 @@ export default defineEventHandler(async (event) => {
   if (!config.wikipediaUserAgent) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'WIKIPEDIA_USER_AGENT is not configured',
+      statusMessage: 'NUXT_WIKIPEDIA_USER_AGENT is not configured',
     })
   }
 
@@ -32,6 +32,7 @@ export default defineEventHandler(async (event) => {
       title,
       html: response,
     }
+
   } catch (error: any) {
     throw createError({
       statusCode: error.response?.status || 500,
