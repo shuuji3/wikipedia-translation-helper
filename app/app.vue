@@ -1,17 +1,21 @@
 <script setup lang="ts">
 const title = ref('')
+const isFetching = ref(false)
 const originalHtml = ref('')
 const translatedContent = ref<{ [key: string]: string }>({})
 
 async function fetchArticle() {
-  if (!title.value) return
+  if (!title.value || isFetching.value) return
   
+  isFetching.value = true
   try {
     const data = await $fetch<{ title: string; html: string }>(`/api/wiki/parse?title=${encodeURIComponent(title.value)}`)
     originalHtml.value = data.html
   } catch (error) {
     console.error('Failed to fetch article:', error)
     alert('Failed to fetch article. Please check the title and try again.')
+  } finally {
+    isFetching.value = false
   }
 }
 
@@ -42,9 +46,11 @@ function handlePaneClick(event: MouseEvent) {
           />
           <button
             @click="fetchArticle"
-            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors"
+            :disabled="isFetching"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            Fetch
+            <span v-if="isFetching" class="inline-block animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
+            {{ isFetching ? 'Fetching...' : 'Fetch' }}
           </button>
         </div>
       </div>
@@ -58,7 +64,13 @@ function handlePaneClick(event: MouseEvent) {
           <h2 class="text-2xl font-bold border-b pb-2">Original (English)</h2>
         </header>
         <div class="flex-1 overflow-y-auto p-6 pt-4">
-          <div class="prose max-w-none prose-slate" v-if="originalHtml">
+          <div v-if="isFetching" class="h-full flex items-center justify-center text-gray-400">
+            <div class="flex flex-col items-center gap-2">
+              <span class="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full"></span>
+              <p>Fetching article from Wikipedia...</p>
+            </div>
+          </div>
+          <div v-else-if="originalHtml" class="prose max-w-none prose-slate">
             <div 
               v-html="originalHtml" 
               class="wikipedia-content"
