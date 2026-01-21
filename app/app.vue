@@ -7,6 +7,7 @@ const selectedId = ref<string | null>(null)
 const selectedTextSnippet = ref('')
 const originalHtml = ref('')
 const translatedContent = ref<{ [key: string]: string }>({})
+const vault = ref<string[]>([])
 
 async function fetchArticle() {
   if (!title.value || isFetching.value) return
@@ -16,6 +17,7 @@ async function fetchArticle() {
   selectedId.value = null
   selectedTextSnippet.value = ''
   translatedContent.value = {}
+  vault.value = []
   try {
     const apiPath = `${window.location.origin}${config.app.baseURL}api/wiki/parse?title=${encodeURIComponent(title.value)}`
     const data = await $fetch<{ title: string; html: string }>(apiPath)
@@ -28,15 +30,31 @@ async function fetchArticle() {
   }
 }
 
-function getWikitextFromElement(target: HTMLElement): string {
+function prepareTranslationText(target: HTMLElement): string {
   const clone = target.cloneNode(true) as HTMLElement
-  clone.querySelectorAll('a[rel="mw:WikiLink"]').forEach(el => {
-    const href = el.getAttribute('href') || ''
-    const title = decodeURIComponent(href.replace(/^\.\//, '')).replace(/_/g, ' ')
-    const label = el.textContent || ''
-    const wikilink = title === label ? `[[${title}]]` : `[[${title}|${label}]]`
-    el.replaceWith(document.createTextNode(wikilink))
+  const currentVault: string[] = []
+
+  // Handle all elements with 'typeof' (templates, refs, math, etc.)
+  // and Wikilinks
+  const specialElements = clone.querySelectorAll('[typeof], a[rel="mw:WikiLink"]')
+  
+  specialElements.forEach(el => {
+    // Check if it's a Wikilink
+    if (el.tagName === 'A' && el.getAttribute('rel') === 'mw:WikiLink') {
+      const href = el.getAttribute('href') || ''
+      const title = decodeURIComponent(href.replace(/^\.\//, '')).replace(/_/g, ' ')
+      const label = el.textContent || ''
+      const wikilink = title === label ? `[[${title}]]` : `[[${title}|${label}]]`
+      el.replaceWith(document.createTextNode(wikilink))
+    } else if (el.hasAttribute('typeof')) {
+      // It's a special Wikipedia element (Template, Ref, etc.)
+      const index = currentVault.length
+      currentVault.push(el.outerHTML)
+      el.replaceWith(document.createTextNode(`<wp_element_${index} />`))
+    }
   })
+
+  vault.value = currentVault
   return clone.textContent?.trim() || ''
 }
 
@@ -54,12 +72,19 @@ async function handlePaneClick(event: MouseEvent) {
   selectedId.value = id
   target.setAttribute('data-selected', 'true')
 
-  // Phase 4-1: Extract text with Wikilinks
-  const textWithLinks = getWikitextFromElement(target)
+  // Phase 4-1: Prepare text with placeholders for LLM
+  const textWithPlaceholders = prepareTranslationText(target)
   const plainText = target.textContent?.trim() || ''
 
   // Set snippet for the loading view
   selectedTextSnippet.value = plainText.substring(0, 60) + (plainText.length > 60 ? '...' : '')
+
+  console.log('Phase 4-1 Analysis:', {
+    id,
+    originalText: plainText,
+    textWithPlaceholders: textWithPlaceholders,
+    vaultSize: vault.value.length
+  })
 
   // If already translated, just select it
   if (translatedContent.value[id]) {
@@ -74,7 +99,7 @@ async function handlePaneClick(event: MouseEvent) {
     const apiPath = `${window.location.origin}${config.app.baseURL}api/translate`
     const response = await $fetch<{ original: string; translated: string }>(apiPath, {
       method: 'POST',
-      body: { text: textWithLinks }
+      body: { text: textWithPlaceholders }
     })
     translatedContent.value[id] = response.translated
   } catch (error) {
