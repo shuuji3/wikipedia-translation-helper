@@ -1,6 +1,16 @@
 import type { TranslationBlock } from './useWikipediaArticle'
 
-// Global state for translation to be shared across components
+// SINGLETON STATE
+const _translatedContent = (articleIdGetter: () => string | null) => 
+  usePersistentState<Record<string, string>>(
+    'wiki-translated-content',
+    () => {
+      const aid = articleIdGetter()
+      return aid ? `${aid}:translations` : null
+    },
+    {}
+  )
+
 export function useTranslation() {
   const config = useRuntimeConfig()
   const { title } = useWikipediaArticle()
@@ -13,16 +23,12 @@ export function useTranslation() {
   const translatingId = useState<string | null>('translatingId', () => null)
   const selectedId = useState<string | null>('selectedId', () => null)
   const selectedTextSnippet = useState<string>('selectedTextSnippet', () => '')
-  const translatedContent = usePersistentState<Record<string, string>>(
-    () => articleId.value ? `${articleId.value}:translations` : null,
-    {}
-  )
+  const translatedContent = _translatedContent(() => articleId.value)
 
   async function translateBlock(block: TranslationBlock) {
     const id = block.id
     selectedId.value = id
 
-    // Handle non-content tags (style, link, meta, etc.) automatically
     const nonContentTags = ['STYLE', 'LINK', 'META', 'NOSCRIPT']
     if (nonContentTags.includes(block.tagName)) {
       translatedContent.value[id] = block.html

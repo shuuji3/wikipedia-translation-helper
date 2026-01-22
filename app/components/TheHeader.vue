@@ -1,8 +1,10 @@
 <script setup lang="ts">
-const { title, isFetching, fetchArticle } = useWikipediaArticle()
+const { title, isFetching, fetchArticle, clearArticle, blocks } = useWikipediaArticle()
 const { resetTranslation } = useTranslation()
 
 async function handleFetch() {
+  // If title is same and we already have blocks, no need to re-fetch unless explicitly asked
+  // But for now, we keep the original logic for simplicity.
   resetTranslation()
   await fetchArticle()
 }
@@ -11,7 +13,26 @@ async function handleFetch() {
 <template>
   <header class="bg-white border-b border-gray-200 p-4 sticky top-0 z-10 shadow-sm">
     <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-4">
-      <div class="brand-title">🌐 wikipedia-translation-helper</div>
+      <div 
+        class="brand-title flex items-center gap-2 cursor-pointer"
+        @click="clearArticle"
+      >
+        <span>🌐</span>
+        <span class="hidden sm:inline">wikipedia-translation-helper</span>
+      </div>
+
+      <div v-if="blocks.length > 0" class="flex items-center gap-2">
+        <button 
+          @click="clearArticle"
+          class="text-gray-500 hover:text-gray-700 flex items-center gap-1 text-sm font-medium px-2 py-1 rounded hover:bg-gray-100"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          Back to List
+        </button>
+      </div>
+
       <div class="flex-1 min-w-[300px] flex gap-2">
         <input
           v-model="title"

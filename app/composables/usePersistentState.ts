@@ -1,49 +1,71 @@
 import { storage } from '../utils/storage'
 
+// Global registry to ensure each persistent state only sets up its watchers once
+const initializedStates = new Set<string>()
+
 /**
- * A composable for managing persistent state.
- * @param keyGetter A function that returns a unique key for the current article (e.g., () => articleId.value ? `${articleId.value}:blocks` : null)
- * @param defaultValue Initial value if no saved data is found.
+ * A utility to manage persistent state with a stable key.
+ * Ensures that only one set of watchers exists for each stateName.
  */
-export function usePersistentState<T>(keyGetter: () => string | null, defaultValue: T) {
-  const state = useState<T>(`persistent-${keyGetter() || 'init'}`, () => defaultValue)
-  const isLoading = ref(false)
-  let saveTimeout: NodeJS.Timeout | null = null
+export function usePersistentState<T>(stateName: string, keyGetter: () => string | null, defaultValue: T) {
+  const state = useState<T>(stateName, () => defaultValue)
+  
+  // We only set up watchers once per unique stateName
+  if (import.meta.client && !initializedStates.has(stateName)) {
+    initializedStates.add(stateName)
 
-  // Load data when the key changes
-  watch(keyGetter, async (newKey) => {
-    if (!newKey || import.meta.server) return
+    const isSyncing = ref(false)
+    let lastLoadedKey: string | null = null
+    let saveTimeout: any = null
 
-    isLoading.value = true
-    try {
-      const saved = await storage.getItem<T>(newKey)
-      if (saved !== null) {
-        state.value = saved
-      } else {
+    // Watch for key changes to load data from storage
+    watch(keyGetter, async (newKey) => {
+      if (newKey === lastLoadedKey) return
+      
+      if (!newKey) {
+        lastLoadedKey = null
         state.value = defaultValue
+        return
       }
-    } catch (e) {
-      console.error(`Failed to load persistent state for key: ${newKey}`, e)
-    } finally {
-      isLoading.value = false
-    }
-  }, { immediate: true })
 
-  // Auto-save with debounce when the state changes
-  watch(state, (newValue) => {
-    const key = keyGetter()
-    if (!key || import.meta.server || isLoading.value) return
-
-    if (saveTimeout) clearTimeout(saveTimeout)
-    
-    saveTimeout = setTimeout(async () => {
+      isSyncing.value = true
       try {
-        await storage.setItem(key, newValue)
+        const saved = await storage.getItem<T>(newKey)
+        lastLoadedKey = newKey
+        
+        // Only apply if we actually found something
+        if (saved !== null) {
+          state.value = saved
+        } else {
+          state.value = defaultValue
+        }
       } catch (e) {
-        console.error(`Failed to save persistent state for key: ${key}`, e)
+        console.error(`[usePersistentState:${stateName}] Load failed for ${newKey}:`, e)
+      } finally {
+        // Wait a bit before allowing saves to prevent immediate overwrite
+        setTimeout(() => {
+          isSyncing.value = false
+        }, 100)
       }
-    }, 500) // 500ms debounce
-  }, { deep: true })
+    }, { immediate: true })
+
+    // Watch for state changes to save data to storage
+    watch(state, (newValue) => {
+      const key = keyGetter()
+      if (!key || isSyncing.value) return
+
+      if (saveTimeout) clearTimeout(saveTimeout)
+      saveTimeout = setTimeout(async () => {
+        try {
+          // Double check syncing flag inside timeout
+          if (isSyncing.value) return
+          await storage.setItem(key, newValue)
+        } catch (e) {
+          console.error(`[usePersistentState:${stateName}] Save failed for ${key}:`, e)
+        }
+      }, 500)
+    }, { deep: true })
+  }
 
   return state
 }

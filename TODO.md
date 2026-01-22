@@ -42,7 +42,8 @@
 - [x] Implement `articleId` generation in `useWikipediaArticle`.
 - [x] Migrate `blocks` and `title` to persistent state in `useWikipediaArticle`.
 - [x] Migrate `translatedContent` to persistent state in `useTranslation`.
-- [ ] Add ArticleSelector UI to manage saved articles.
+- [x] Add ArticleSelector UI to manage saved articles.
+- [x] Fix race condition between persistent state loading and article fetching.
 
 ## Known Issues
 - [ ] Intermittent "NetworkError / No Response" during long translation tasks (Firefox/General).

@@ -5,40 +5,73 @@ export interface TranslationBlock {
   vault: string[]
 }
 
+export interface ArticleMetadata {
+  id: string
+  title: string
+  updatedAt: number
+}
+
+// SINGLETON STATE: Defined outside the composable function to prevent redundant watchers
+// These will be initialized once and shared across all components.
+const _title = () => usePersistentState<string>('wiki-title', () => 'lastActiveTitle', '')
+const _savedArticles = () => usePersistentState<ArticleMetadata[]>('wiki-saved-articles', () => 'savedArticlesList', [])
+
+/**
+ * articleId is a normalized version of the title used for storage keys.
+ */
+const getArticleId = (titleValue: string) => {
+  if (!titleValue) return null
+  return titleValue.trim().replace(/\s+/g, '_')
+}
+
+const _blocks = (titleRef: Ref<string>) => usePersistentState<TranslationBlock[]>(
+  'wiki-blocks',
+  () => {
+    const aid = getArticleId(titleRef.value)
+    return aid ? `${aid}:blocks` : null
+  },
+  []
+)
+
 export function useWikipediaArticle() {
   const config = useRuntimeConfig()
   
-  // SHARED STATE: title is the entry point for article fetching.
-  // Persist the last active title to allow resuming work after reload.
-  const title = usePersistentState<string>(() => 'lastActiveTitle', '')
+  const title = _title()
+  const savedArticles = _savedArticles()
+  const blocks = _blocks(title)
 
-  /**
-   * articleId is a normalized version of the title used for storage keys.
-   */
-  const articleId = computed(() => {
-    if (!title.value) return null
-    return title.value.trim().replace(/\s+/g, '_')
-  })
-  
-  // PERSISTENT STATE: blocks are saved per articleId.
-  const blocks = usePersistentState<TranslationBlock[]>(
-    () => articleId.value ? `${articleId.value}:blocks` : null,
-    []
-  )
+  const articleId = computed(() => getArticleId(title.value))
 
   const bodyClass = useState<string>('wikiBodyClass', () => '')
   const generatedWikitext = useState<string>('wikiGeneratedWikitext', () => '')
-  // isFetching is shared between TheHeader and TranslationGrid
   const isFetching = useState<boolean>('wikiIsFetching', () => false)
 
-  // LOCAL STATE (ref): Only used within the instance of this composable
   const isSerializing = ref(false)
   const isCopied = ref(false)
+
+  function updateSavedArticlesList() {
+    if (!articleId.value || !title.value) return
+
+    const now = Date.now()
+    const index = savedArticles.value.findIndex(a => a.id === articleId.value)
+    
+    if (index !== -1) {
+      savedArticles.value[index] = { ...savedArticles.value[index], updatedAt: now }
+    } else {
+      savedArticles.value.push({
+        id: articleId.value,
+        title: title.value,
+        updatedAt: now
+      })
+    }
+    savedArticles.value.sort((a, b) => b.updatedAt - a.updatedAt)
+  }
 
   async function fetchArticle() {
     if (!title.value || isFetching.value) return
 
     isFetching.value = true
+    // Clear current blocks before fetching, but this will be overridden by the fresh data
     blocks.value = []
     generatedWikitext.value = ''
     bodyClass.value = ''
@@ -71,11 +104,33 @@ export function useWikipediaArticle() {
       
       processContainer(doc.body)
       blocks.value = collectedBlocks
+      updateSavedArticlesList()
     } catch (error) {
       console.error('Failed to fetch article:', error)
       alert('Failed to fetch article. Please check the title and try again.')
     } finally {
       isFetching.value = false
+    }
+  }
+
+  function clearArticle() {
+    title.value = ''
+    blocks.value = []
+    generatedWikitext.value = ''
+  }
+
+  async function removeArticle(id: string) {
+    if (!confirm('Are you sure you want to delete this article? All translation progress will be lost.')) return
+
+    try {
+      await storage.removeItem(`${id}:blocks`)
+      await storage.removeItem(`${id}:translations`)
+      savedArticles.value = savedArticles.value.filter(a => a.id !== id)
+      if (articleId.value === id) {
+        clearArticle()
+      }
+    } catch (e) {
+      console.error('Failed to remove article:', e)
     }
   }
 
@@ -101,6 +156,7 @@ export function useWikipediaArticle() {
       })
 
       generatedWikitext.value = response.wikitext
+      updateSavedArticlesList()
       
       nextTick(() => {
         const el = document.getElementById('wikitext-output')
@@ -127,11 +183,14 @@ export function useWikipediaArticle() {
     title,
     isFetching,
     blocks,
+    savedArticles,
     bodyClass,
     isSerializing,
     generatedWikitext,
     isCopied,
     fetchArticle,
+    clearArticle,
+    removeArticle,
     generateWikitext,
     copyToClipboard
   }
