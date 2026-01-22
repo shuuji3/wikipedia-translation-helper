@@ -50,6 +50,7 @@
 - [x] Add a 0.5rem blue progress bar below the header in `app.vue`.
 - [x] Implement click-to-edit functionality for translated blocks in `TranslationRow.vue`.
 - [x] Ensure `textarea` styling matches original text and handles blur/Esc.
+- [x] Fix Wikipedia style persistence by rendering STYLE tags and handling absolute URLs.
 
 ### Phase 8: Project Identity
 - [x] Update GitHub description and README to reflect tool focus and LLM performance improvements.
