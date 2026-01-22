@@ -9,8 +9,6 @@ const initializedStates = new Set<string>()
  * A simple utility to sync a Ref with IndexedDB.
  */
 export function usePersistentState<T>(state: Ref<T>, keyGetter: () => string | null, defaultValue: T, deep: boolean = false) {
-  if (import.meta.server) return { isInitialLoading: ref(false) }
-
   const isInitialLoading = ref(false)
   const stateName = (state as any)._name || 'unknown'
 
@@ -35,9 +33,7 @@ export function usePersistentState<T>(state: Ref<T>, keyGetter: () => string | n
       } catch (e) {
         console.error(`[Persistence] Failed to load key: ${newKey}`, e)
       } finally {
-        setTimeout(() => {
-          isInitialLoading.value = false
-        }, 100)
+        isInitialLoading.value = false
       }
     }, { immediate: true })
 
@@ -57,7 +53,7 @@ export function usePersistentState<T>(state: Ref<T>, keyGetter: () => string | n
         } catch (e) {
           console.error(`[Persistence] Failed to save key: ${key}`, e)
         }
-      }, 300) // 300ms debounce for responsiveness
+      }, 300)
     }, { deep })
   }
 
