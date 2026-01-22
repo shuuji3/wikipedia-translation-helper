@@ -18,7 +18,11 @@ async function handleFetch() {
         @click="clearArticle"
       >
         <span>🌐</span>
-        <span class="hidden sm:inline">wikipedia-translation-helper</span>
+        <span class="flex items-center">
+          <span class="text-gray-400 font-normal">[[</span>
+          <span>wikipedia-translation-helper</span>
+          <span class="text-gray-400 font-normal">]]</span>
+        </span>
       </div>
 
       <div class="flex-1 min-w-[300px] flex gap-2">
