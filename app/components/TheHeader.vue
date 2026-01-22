@@ -17,7 +17,7 @@ async function handleFetch() {
         class="brand-title flex items-center gap-2 cursor-pointer"
         @click="clearArticle"
       >
-        <span>🌐</span>
+        <span></span>
         <span class="flex items-center">
           <span class="text-gray-400 font-normal">[[</span>
           <span>wikipedia-translation-helper</span>

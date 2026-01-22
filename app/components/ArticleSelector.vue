@@ -20,7 +20,7 @@ function formatDate(timestamp: number) {
 <template>
   <div class="max-w-4xl mx-auto p-6">
     <div v-if="savedArticles.length === 0" class="bg-white rounded-lg border border-dashed border-gray-300 p-12 text-center">
-      <div class="text-gray-400 mb-4 text-5xl">📄</div>
+      <div class="text-gray-400 mb-4 text-5xl"></div>
       <p class="text-gray-500 text-lg">No articles in progress yet.</p>
       <p class="text-gray-400">Enter a Wikipedia title in the header to start a new translation!</p>
     </div>

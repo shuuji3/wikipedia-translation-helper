@@ -36,7 +36,7 @@ export function prepareTranslationText(target: HTMLElement, blockVault: string[]
     }
   })
 
-  return clone.textContent?.trim() || ''
+  return clone.innerHTML.trim()
 }
 
 export async function finalizeTranslation(

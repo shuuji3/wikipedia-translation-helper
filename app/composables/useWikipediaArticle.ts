@@ -166,7 +166,15 @@ export function useWikipediaArticle() {
     if (blocks.value.length === 0 || isSerializing.value) return
     isSerializing.value = true
     try {
-      const fullHtml = blocks.value.map(b => translatedContent[b.id] || b.html).join('')
+      const fullHtml = blocks.value
+        .filter(b => translatedContent[b.id])
+        .map(b => {
+          const content = translatedContent[b.id]
+          if (['STYLE', 'LINK', 'META', 'NOSCRIPT'].includes(b.tagName)) return content
+          const tag = b.tagName.toLowerCase()
+          return `<${tag}>${content}</${tag}>`
+        })
+        .join('')
       const response = await $fetch<{ wikitext: string }>(`${window.location.origin}${config.app.baseURL}api/wiki/serialize`, {
         method: 'POST',
         body: { html: fullHtml, title: activeTitle.value }

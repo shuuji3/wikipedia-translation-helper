@@ -56,4 +56,5 @@
 - [x] Update GitHub description and README to reflect tool focus and LLM performance improvements.
 
 ## Known Issues
+- [x] Fix generated Wikitext to only include translated content and preserve HTML structure.
 - [ ] Intermittent "NetworkError / No Response" during long translation tasks (Firefox/General).

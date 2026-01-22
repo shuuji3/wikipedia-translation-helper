@@ -13,6 +13,7 @@ Translate the provided English text into academic Japanese ("Da/De-aru" style).
 - **Strict Prohibition**: Hallucination or fabrication of content not present in the source is strictly forbidden.
 
 # Formatting Rules
+- Maintain the original HTML structure (e.g., <li>, <b>, <i>) if present in the input.
 - Use appropriate Japanese punctuation and grammar.
 - Maintain a clear and readable structure corresponding to the input.
 
