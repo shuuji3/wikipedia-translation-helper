@@ -1,6 +1,6 @@
 # 🌐 Wikipedia Translation Helper
 
-A tool designed to assist with translating Wikipedia articles. It leverages the MediaWiki Parsoid API to maintain article structure while providing LLM-assisted translation and automated interlanguage link ({{ill}}) conversion.
+A dedicated editor designed to streamline Wikipedia article translation. It automates missing link conversion and utilizes recent improvements in LLM translation performance while maintaining article structure via the MediaWiki Parsoid API.
 
 ## Key Features
 

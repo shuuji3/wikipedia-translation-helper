@@ -51,5 +51,8 @@
 - [x] Implement click-to-edit functionality for translated blocks in `TranslationRow.vue`.
 - [x] Ensure `textarea` styling matches original text and handles blur/Esc.
 
+### Phase 8: Project Identity
+- [x] Update GitHub description and README to reflect tool focus and LLM performance improvements.
+
 ## Known Issues
 - [ ] Intermittent "NetworkError / No Response" during long translation tasks (Firefox/General).
