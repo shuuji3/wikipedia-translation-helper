@@ -24,9 +24,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Combine system prompt with the input text
-  const fullPrompt = `${ACADEMIC_TRANSLATION_PROMPT}\n\nInput: '${text}'\nOutput:`
-
   // Gemini API endpoint (using the latest gemini-3-flash-preview)
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`
 
@@ -34,9 +31,12 @@ export default defineEventHandler(async (event) => {
     const response = await $fetch<any>(endpoint, {
       method: 'POST',
       body: {
+        system_instruction: {
+          parts: [{ text: ACADEMIC_TRANSLATION_PROMPT }]
+        },
         contents: [
           {
-            parts: [{ text: fullPrompt }]
+            parts: [{ text: text }]
           }
         ],
         generationConfig: {
