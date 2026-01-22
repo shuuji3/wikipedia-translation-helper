@@ -124,12 +124,27 @@ function handleInput() {
 }
 :deep(.wikipedia-content) p, 
 :deep(.wikipedia-content) h2, 
-:deep(.wikipedia-content) h3, 
-:deep(.wikipedia-content) li {
+:deep(.wikipedia-content) h3 {
   margin: 0;
 }
-:deep(.wikipedia-content) h2 { font-size: 1.5rem; font-weight: bold; border-bottom: 1px solid #eee; margin-bottom: 0.5rem; }
-:deep(.wikipedia-content) h3 { font-size: 1.25rem; font-weight: bold; }
+:deep(.wikipedia-content) h2 { font-size: 1.5rem; font-weight: bold; border-bottom: 1px solid #eee; margin-top: 1rem; margin-bottom: 0.5rem; }
+:deep(.wikipedia-content) h3 { font-size: 1.25rem; font-weight: bold; margin-top: 0.75rem; }
+
+/* Restore list styles removed by Tailwind Preflight */
+:deep(.wikipedia-content) ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+:deep(.wikipedia-content) ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+  margin: 0.5rem 0;
+}
+:deep(.wikipedia-content) li {
+  margin-bottom: 0.25rem;
+  display: list-item; /* Ensure it behaves like a list item */
+}
 
 [data-selected="true"] {
   background-color: rgba(59, 130, 246, 0.03);

@@ -13,7 +13,7 @@ async function handleFetch() {
 <template>
   <header class="bg-white border-b border-gray-200 p-4 sticky top-0 z-10 shadow-sm">
     <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-4">
-      <div 
+      <div
         class="brand-title flex items-center gap-2 cursor-pointer"
         @click="clearArticle"
       >
