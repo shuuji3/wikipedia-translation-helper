@@ -3,7 +3,9 @@ const { blocks, isFetching, isBlocksLoading, bodyClass } = useWikipediaArticle()
 const { progress } = useTranslation()
 
 useHead({
+  title: 'wikipedia-translation-helper',
   link: [
+    { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
     {
       rel: 'stylesheet',
       // Use the raw URL without any pre-processing to avoid double-encoding of '&'
