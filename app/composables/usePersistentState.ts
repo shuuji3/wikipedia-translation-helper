@@ -1,71 +1,65 @@
 import { storage } from '../utils/storage'
 
-// Global registry to ensure each persistent state only sets up its watchers once
+/**
+ * Global registry to ensure each persistent state only sets up its watchers once.
+ */
 const initializedStates = new Set<string>()
 
 /**
- * A utility to manage persistent state with a stable key.
- * Ensures that only one set of watchers exists for each stateName.
+ * A simple utility to sync a Ref with IndexedDB.
  */
-export function usePersistentState<T>(stateName: string, keyGetter: () => string | null, defaultValue: T) {
-  const state = useState<T>(stateName, () => defaultValue)
-  
-  // We only set up watchers once per unique stateName
-  if (import.meta.client && !initializedStates.has(stateName)) {
-    initializedStates.add(stateName)
+export function usePersistentState<T>(state: Ref<T>, keyGetter: () => string | null, defaultValue: T, deep: boolean = false) {
+  if (import.meta.server) return { isInitialLoading: ref(false) }
 
-    const isSyncing = ref(false)
-    let lastLoadedKey: string | null = null
-    let saveTimeout: any = null
+  const isInitialLoading = ref(false)
+  const stateName = (state as any)._name || 'unknown'
 
-    // Watch for key changes to load data from storage
+  if (!initializedStates.has(stateName + (keyGetter.toString().length))) {
+    initializedStates.add(stateName + (keyGetter.toString().length))
+
+    // 1. Watch for key changes to LOAD data
     watch(keyGetter, async (newKey) => {
-      if (newKey === lastLoadedKey) return
-      
       if (!newKey) {
-        lastLoadedKey = null
-        state.value = defaultValue
+        state.value = JSON.parse(JSON.stringify(defaultValue))
         return
       }
-
-      isSyncing.value = true
+      
+      isInitialLoading.value = true
       try {
         const saved = await storage.getItem<T>(newKey)
-        lastLoadedKey = newKey
-        
-        // Only apply if we actually found something
         if (saved !== null) {
           state.value = saved
         } else {
-          state.value = defaultValue
+          state.value = JSON.parse(JSON.stringify(defaultValue))
         }
       } catch (e) {
-        console.error(`[usePersistentState:${stateName}] Load failed for ${newKey}:`, e)
+        console.error(`[Persistence] Failed to load key: ${newKey}`, e)
       } finally {
-        // Wait a bit before allowing saves to prevent immediate overwrite
         setTimeout(() => {
-          isSyncing.value = false
+          isInitialLoading.value = false
         }, 100)
       }
     }, { immediate: true })
 
-    // Watch for state changes to save data to storage
+    // 2. Watch for state changes to SAVE data
+    let timeout: any = null
     watch(state, (newValue) => {
+      if (isInitialLoading.value) return
+      
       const key = keyGetter()
-      if (!key || isSyncing.value) return
+      if (!key) return
 
-      if (saveTimeout) clearTimeout(saveTimeout)
-      saveTimeout = setTimeout(async () => {
+      if (timeout) clearTimeout(timeout)
+      timeout = setTimeout(async () => {
+        if (isInitialLoading.value) return
         try {
-          // Double check syncing flag inside timeout
-          if (isSyncing.value) return
           await storage.setItem(key, newValue)
         } catch (e) {
-          console.error(`[usePersistentState:${stateName}] Save failed for ${key}:`, e)
+          console.error(`[Persistence] Failed to save key: ${key}`, e)
         }
-      }, 500)
-    }, { deep: true })
+      }, 1000)
+    }, { deep })
   }
 
-  return state
+  return { isInitialLoading }
 }

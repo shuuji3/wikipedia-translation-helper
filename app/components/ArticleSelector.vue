@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import type { ArticleMetadata } from '../composables/useWikipediaArticle'
 
-const { savedArticles, title, removeArticle } = useWikipediaArticle()
+const { savedArticles, loadArticleFromList, removeArticle } = useWikipediaArticle()
 
 function loadArticle(article: ArticleMetadata) {
-  title.value = article.title
+  loadArticleFromList(article)
 }
 
 function handleDelete(e: Event, id: string) {

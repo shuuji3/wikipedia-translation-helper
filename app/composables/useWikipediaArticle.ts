@@ -11,70 +11,75 @@ export interface ArticleMetadata {
   updatedAt: number
 }
 
-// SINGLETON STATE: Defined outside the composable function to prevent redundant watchers
-// These will be initialized once and shared across all components.
-const _title = () => usePersistentState<string>('wiki-title', () => 'lastActiveTitle', '')
-const _savedArticles = () => usePersistentState<ArticleMetadata[]>('wiki-saved-articles', () => 'savedArticlesList', [])
-
-/**
- * articleId is a normalized version of the title used for storage keys.
- */
+// Helper to normalize title
 const getArticleId = (titleValue: string) => {
   if (!titleValue) return null
   return titleValue.trim().replace(/\s+/g, '_')
 }
 
-const _blocks = (titleRef: Ref<string>) => usePersistentState<TranslationBlock[]>(
-  'wiki-blocks',
-  () => {
-    const aid = getArticleId(titleRef.value)
-    return aid ? `${aid}:blocks` : null
-  },
-  []
-)
-
 export function useWikipediaArticle() {
   const config = useRuntimeConfig()
   
-  const title = _title()
-  const savedArticles = _savedArticles()
-  const blocks = _blocks(title)
+  // Input title (volatile, what the user is typing)
+  const title = useState<string>('wiki-input-title', () => '')
+  
+  // Active title (the article currently being translated)
+  const activeTitle = useState<string>('wiki-active-title', () => '')
+  
+  // Persistent shared states
+  const savedArticles = useState<ArticleMetadata[]>('wiki-saved-articles', () => [])
+  const blocks = useState<TranslationBlock[]>('wiki-blocks', () => [])
 
-  const articleId = computed(() => getArticleId(title.value))
+  // Normalized ID for storage based on ACTIVE title
+  const activeArticleId = computed(() => getArticleId(activeTitle.value))
+
+  // Setup Persistence
+  usePersistentState(activeTitle, () => 'lastActiveTitle', '')
+  usePersistentState(savedArticles, () => 'savedArticlesList', [], true)
+  
+  const { isInitialLoading: isBlocksLoading } = usePersistentState(
+    blocks, 
+    () => activeArticleId.value ? `${activeArticleId.value}:blocks` : null,
+    [],
+    false
+  )
 
   const bodyClass = useState<string>('wikiBodyClass', () => '')
   const generatedWikitext = useState<string>('wikiGeneratedWikitext', () => '')
   const isFetching = useState<boolean>('wikiIsFetching', () => false)
-
   const isSerializing = ref(false)
   const isCopied = ref(false)
 
-  function updateSavedArticlesList() {
-    if (!articleId.value || !title.value) return
-
-    const now = Date.now()
-    const index = savedArticles.value.findIndex(a => a.id === articleId.value)
-    
-    if (index !== -1) {
-      savedArticles.value[index] = { ...savedArticles.value[index], updatedAt: now }
-    } else {
-      savedArticles.value.push({
-        id: articleId.value,
-        title: title.value,
-        updatedAt: now
-      })
+  // Sync title input with activeTitle when activeTitle changes (for initial load/refresh)
+  watch(activeTitle, (newVal) => {
+    if (newVal && !title.value) {
+      title.value = newVal
     }
-    savedArticles.value.sort((a, b) => b.updatedAt - a.updatedAt)
+  }, { immediate: true })
+
+  function updateSavedArticlesList() {
+    if (!activeArticleId.value || !activeTitle.value) return
+    const now = Date.now()
+    const list = [...savedArticles.value]
+    const index = list.findIndex(a => a.id === activeArticleId.value)
+    if (index !== -1) {
+      list[index] = { ...list[index], updatedAt: now }
+    } else {
+      list.push({ id: activeArticleId.value, title: activeTitle.value, updatedAt: now })
+    }
+    list.sort((a, b) => b.updatedAt - a.updatedAt)
+    savedArticles.value = list
   }
 
   async function fetchArticle() {
     if (!title.value || isFetching.value) return
 
     isFetching.value = true
-    // Clear current blocks before fetching, but this will be overridden by the fresh data
-    blocks.value = []
     generatedWikitext.value = ''
     bodyClass.value = ''
+    
+    // Set activeTitle only when we actually fetch
+    activeTitle.value = title.value
     
     try {
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
@@ -83,7 +88,6 @@ export function useWikipediaArticle() {
       
       const parser = new DOMParser()
       const doc = parser.parseFromString(data.html, 'text/html')
-      
       injectStyles(doc, bodyClass)
       
       const collectedBlocks: TranslationBlock[] = []
@@ -101,70 +105,51 @@ export function useWikipediaArticle() {
           }
         })
       }
-      
       processContainer(doc.body)
+      
       blocks.value = collectedBlocks
       updateSavedArticlesList()
     } catch (error) {
       console.error('Failed to fetch article:', error)
-      alert('Failed to fetch article. Please check the title and try again.')
+      alert('Failed to fetch article.')
     } finally {
       isFetching.value = false
     }
   }
 
+  function loadArticleFromList(article: ArticleMetadata) {
+    activeTitle.value = article.title
+    title.value = article.title
+  }
+
   function clearArticle() {
+    activeTitle.value = ''
     title.value = ''
     blocks.value = []
     generatedWikitext.value = ''
   }
 
   async function removeArticle(id: string) {
-    if (!confirm('Are you sure you want to delete this article? All translation progress will be lost.')) return
-
-    try {
-      await storage.removeItem(`${id}:blocks`)
-      await storage.removeItem(`${id}:translations`)
-      savedArticles.value = savedArticles.value.filter(a => a.id !== id)
-      if (articleId.value === id) {
-        clearArticle()
-      }
-    } catch (e) {
-      console.error('Failed to remove article:', e)
-    }
+    if (!confirm('Delete this article?')) return
+    await storage.removeItem(`${id}:blocks`)
+    await storage.removeItem(`${id}:translations`)
+    savedArticles.value = savedArticles.value.filter(a => a.id !== id)
+    if (activeArticleId.value === id) clearArticle()
   }
 
   async function generateWikitext(translatedContent: Record<string, string>) {
     if (blocks.value.length === 0 || isSerializing.value) return
-
     isSerializing.value = true
-    generatedWikitext.value = ''
-
     try {
-      const fullHtml = blocks.value
-        .map((block) => translatedContent[block.id] || block.html)
-        .join('')
-
-      const origin = typeof window !== 'undefined' ? window.location.origin : ''
-      const apiPath = `${origin}${config.app.baseURL}api/wiki/serialize`
-      const response = await $fetch<{ wikitext: string }>(apiPath, {
+      const fullHtml = blocks.value.map(b => translatedContent[b.id] || b.html).join('')
+      const response = await $fetch<{ wikitext: string }>(`${window.location.origin}${config.app.baseURL}api/wiki/serialize`, {
         method: 'POST',
-        body: { 
-          html: fullHtml,
-          title: title.value
-        }
+        body: { html: fullHtml, title: activeTitle.value }
       })
-
       generatedWikitext.value = response.wikitext
       updateSavedArticlesList()
-      
-      nextTick(() => {
-        const el = document.getElementById('wikitext-output')
-        el?.scrollIntoView({ behavior: 'smooth' })
-      })
     } catch (error) {
       console.error('Serialization failed:', error)
-      alert('Failed to generate Wikitext. Check the console for details.')
     } finally {
       isSerializing.value = false
     }
@@ -174,24 +159,12 @@ export function useWikipediaArticle() {
     if (!generatedWikitext.value || isCopied.value) return
     navigator.clipboard.writeText(generatedWikitext.value)
     isCopied.value = true
-    setTimeout(() => {
-      isCopied.value = false
-    }, 2000)
+    setTimeout(() => { isCopied.value = false }, 2000)
   }
 
   return {
-    title,
-    isFetching,
-    blocks,
-    savedArticles,
-    bodyClass,
-    isSerializing,
-    generatedWikitext,
-    isCopied,
-    fetchArticle,
-    clearArticle,
-    removeArticle,
-    generateWikitext,
-    copyToClipboard
+    title, activeTitle, isFetching, isBlocksLoading, blocks, savedArticles, bodyClass,
+    isSerializing, generatedWikitext, isCopied,
+    fetchArticle, loadArticleFromList, clearArticle, removeArticle, generateWikitext, copyToClipboard
   }
 }
