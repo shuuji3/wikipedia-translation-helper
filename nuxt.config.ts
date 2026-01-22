@@ -4,6 +4,9 @@ export default defineNuxtConfig({
   future: {
     compatibilityVersion: 4,
   },
+  nitro: {
+    preset: 'node-server',
+  },
   modules: ['@nuxtjs/tailwindcss'],
   devtools: { enabled: true },
   runtimeConfig: {
