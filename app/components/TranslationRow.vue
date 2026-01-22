@@ -103,7 +103,7 @@ function handleInput() {
 
       <!-- Placeholder when not translated -->
       <div v-else class="h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-        <div class="text-xs font-bold text-blue-400 uppercase tracking-widest flex items-center gap-2">
+        <div class="text-sm font-bold text-blue-600 flex items-center gap-2">
           <span>Click to translate</span>
           <span class="text-lg">→</span>
         </div>
