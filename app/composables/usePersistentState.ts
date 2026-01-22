@@ -1,3 +1,4 @@
+import { type StorageValue } from 'unstorage'
 import { storage } from '../utils/storage'
 
 /**
@@ -8,7 +9,7 @@ const initializedStates = new Set<string>()
 /**
  * A simple utility to sync a Ref with IndexedDB.
  */
-export function usePersistentState<T>(state: Ref<T>, keyGetter: () => string | null, defaultValue: T, deep: boolean = false) {
+export function usePersistentState<T extends StorageValue>(state: Ref<T>, keyGetter: () => string | null, defaultValue: T, deep: boolean = false) {
   const isInitialLoading = ref(false)
   const stateName = (state as any)._name || 'unknown'
 

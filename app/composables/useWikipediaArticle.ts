@@ -87,7 +87,8 @@ export function useWikipediaArticle() {
     const list = [...savedArticles.value]
     const index = list.findIndex(a => a.id === activeArticleId.value)
     if (index !== -1) {
-      list[index] = { ...list[index], updatedAt: now }
+      const existing = list[index]!
+      list[index] = { ...existing, updatedAt: now }
     } else {
       list.push({ id: activeArticleId.value, title: activeTitle.value, updatedAt: now })
     }
