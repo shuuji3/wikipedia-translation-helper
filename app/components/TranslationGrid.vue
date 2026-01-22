@@ -12,7 +12,7 @@ const { blocks, isFetching, bodyClass } = useWikipediaArticle()
       </div>
     </div>
     
-    <div v-else-if="blocks.length > 0" :class="['flex flex-col', bodyClass]">
+    <div v-else-if="blocks.length > 0" :class="['flex flex-col mw-parser-output', bodyClass]">
       <TranslationRow 
         v-for="block in blocks" 
         :key="block.id" 

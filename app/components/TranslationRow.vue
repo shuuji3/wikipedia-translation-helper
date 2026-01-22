@@ -6,32 +6,70 @@ const props = defineProps<{
 }>()
 
 const { translateBlock, translatingId, selectedId, translatedContent } = useTranslation()
-const { isFetching } = useWikipediaArticle()
+const { isFetching, bodyClass } = useWikipediaArticle()
 
-const nonContentTags = ['STYLE', 'LINK', 'META', 'NOSCRIPT']
-const isHidden = computed(() => nonContentTags.includes(props.block.tagName))
+const isEditing = ref(false)
+
+const isStyleTag = computed(() => props.block.tagName === 'STYLE')
+const isHidden = computed(() => ['LINK', 'META', 'NOSCRIPT'].includes(props.block.tagName))
 
 function handleClick() {
-  if (isFetching.value) return
-  translateBlock(props.block)
+  if (isFetching.value || isStyleTag.value) return
+  
+  if (!translatedContent.value[props.block.id]) {
+    translateBlock(props.block)
+  } else {
+    isEditing.value = true
+  }
+}
+
+const textareaRef = ref<HTMLTextAreaElement | null>(null)
+
+watch(isEditing, (val) => {
+  if (val) {
+    nextTick(() => {
+      if (textareaRef.value) {
+        textareaRef.value.focus()
+        adjustTextareaHeight()
+      }
+    })
+  }
+})
+
+function adjustTextareaHeight() {
+  if (textareaRef.value) {
+    textareaRef.value.style.height = 'auto'
+    textareaRef.value.style.height = textareaRef.value.scrollHeight + 'px'
+  }
+}
+
+function handleInput() {
+  adjustTextareaHeight()
 }
 </script>
 
 <template>
+  <!-- Render STYLE tags directly to ensure Wikipedia styles are active -->
+  <div v-if="isStyleTag" v-html="block.html"></div>
+
   <div 
-    v-if="!isHidden"
+    v-else-if="!isHidden"
     class="flex border-b border-gray-100 min-h-[4rem] group hover:bg-blue-50/20 transition-colors cursor-pointer"
     :data-selected="selectedId === block.id"
     @click="handleClick"
   >
     <!-- Left Column: English Original -->
-    <div class="w-1/2 p-6 bg-white border-r border-gray-100 prose max-w-none prose-slate relative">
+    <div 
+      class="w-1/2 p-6 bg-white border-r border-gray-100 relative"
+    >
       <div v-html="block.html" class="wikipedia-content"></div>
       <div v-if="selectedId === block.id" class="absolute left-0 top-0 bottom-0 w-1 bg-blue-600"></div>
     </div>
 
     <!-- Right Column: Japanese Translation -->
-    <div class="w-1/2 p-6 bg-white prose max-w-none prose-slate relative">
+    <div 
+      class="w-1/2 p-6 bg-white relative"
+    >
       <!-- Loading State -->
       <div v-if="translatingId === block.id" class="flex flex-col gap-3">
         <div class="items-center flex gap-2 text-blue-600">
@@ -46,12 +84,21 @@ function handleClick() {
 
       <!-- Translation Content -->
       <div v-else-if="translatedContent[block.id]" class="relative">
-        <div class="wikipedia-content">
+        <div v-if="!isEditing" class="wikipedia-content">
           <component
             :is="block.tagName"
             v-html="translatedContent[block.id]"
           ></component>
         </div>
+        <textarea
+          v-else
+          ref="textareaRef"
+          v-model="translatedContent[block.id]"
+          @blur="isEditing = false"
+          @keydown.esc="isEditing = false"
+          @input="handleInput"
+          class="w-full p-0 border-none focus:ring-0 bg-transparent resize-none overflow-hidden wikipedia-content-editor"
+        ></textarea>
       </div>
 
       <!-- Placeholder when not translated -->
@@ -66,7 +113,15 @@ function handleClick() {
 </template>
 
 <style scoped>
-.wikipedia-content { line-height: 1.6; }
+.wikipedia-content, .wikipedia-content-editor { 
+  line-height: 1.6;
+  font-family: inherit;
+  font-size: 1rem;
+}
+.wikipedia-content-editor {
+  display: block;
+  width: 100%;
+}
 :deep(.wikipedia-content) p, 
 :deep(.wikipedia-content) h2, 
 :deep(.wikipedia-content) h3, 

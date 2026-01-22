@@ -45,5 +45,11 @@
 - [x] Add ArticleSelector UI to manage saved articles.
 - [x] Fix race condition between persistent state loading and article fetching.
 
+### Phase 7: Manual Editing & Progress Tracking
+- [x] Implement `progress` calculation in `useTranslation`.
+- [x] Add a 0.5rem blue progress bar below the header in `app.vue`.
+- [x] Implement click-to-edit functionality for translated blocks in `TranslationRow.vue`.
+- [x] Ensure `textarea` styling matches original text and handles blur/Esc.
+
 ## Known Issues
 - [ ] Intermittent "NetworkError / No Response" during long translation tasks (Firefox/General).

@@ -44,8 +44,32 @@ export function useWikipediaArticle() {
     false
   )
 
-  const bodyClass = useState<string>('wikiBodyClass', () => '')
+  // Persistent body class for the article
+  const bodyClass = useState<string>('wiki-body-class', () => '')
+  usePersistentState(
+    bodyClass,
+    () => activeArticleId.value ? `${activeArticleId.value}:body-class` : null,
+    ''
+  )
+
+  // Persistent article-specific styles
+  const articleStyles = useState<string[]>('wiki-article-styles', () => [])
+  usePersistentState(
+    articleStyles,
+    () => activeArticleId.value ? `${activeArticleId.value}:article-styles` : null,
+    [],
+    true
+  )
+
+  // Force immediate save for activeTitle to ensure navigation is persisted before reload
+  watch(activeTitle, (newVal) => {
+    if (import.meta.client) {
+      storage.setItem('lastActiveTitle', newVal).catch(console.error)
+    }
+  })
+
   const generatedWikitext = useState<string>('wikiGeneratedWikitext', () => '')
+
   const isFetching = useState<boolean>('wikiIsFetching', () => false)
   const isSerializing = ref(false)
   const isCopied = ref(false)
@@ -88,7 +112,8 @@ export function useWikipediaArticle() {
       
       const parser = new DOMParser()
       const doc = parser.parseFromString(data.html, 'text/html')
-      injectStyles(doc, bodyClass)
+      bodyClass.value = doc.body.className
+      articleStyles.value = extractStyles(doc)
       
       const collectedBlocks: TranslationBlock[] = []
       function processContainer(container: Element) {
@@ -163,7 +188,7 @@ export function useWikipediaArticle() {
   }
 
   return {
-    title, activeTitle, isFetching, isBlocksLoading, blocks, savedArticles, bodyClass,
+    title, activeTitle, isFetching, isBlocksLoading, blocks, savedArticles, bodyClass, articleStyles,
     isSerializing, generatedWikitext, isCopied,
     fetchArticle, loadArticleFromList, clearArticle, removeArticle, generateWikitext, copyToClipboard
   }

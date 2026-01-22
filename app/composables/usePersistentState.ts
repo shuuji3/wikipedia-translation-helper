@@ -57,7 +57,7 @@ export function usePersistentState<T>(state: Ref<T>, keyGetter: () => string | n
         } catch (e) {
           console.error(`[Persistence] Failed to save key: ${key}`, e)
         }
-      }, 1000)
+      }, 300) // 300ms debounce for responsiveness
     }, { deep })
   }
 

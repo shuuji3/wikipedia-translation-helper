@@ -2,23 +2,13 @@
  * Wikipedia specific markup handling utilities
  */
 
-export function injectStyles(doc: Document, bodyClass: Ref<string>) {
-  bodyClass.value = doc.body.className
-
-  const headElements = doc.querySelectorAll('link[rel="stylesheet"], style')
-  headElements.forEach((el) => {
-    const clone = el.cloneNode(true) as HTMLElement
-    if (clone.tagName === 'LINK') {
-      const href = clone.getAttribute('href')
-      if (href && href.startsWith('/')) {
-        clone.setAttribute('href', `https://en.wikipedia.org${href}`)
-      }
-    }
-    const href = clone.getAttribute('href') || (clone.textContent ? 'inline-style' : '')
-    const existing = document.head.querySelector(`[href="${href}"]`)
-    if (!existing) {
-      document.head.appendChild(clone)
-    }
+export function extractStyles(doc: Document) {
+  return Array.from(doc.querySelectorAll('link[rel="stylesheet"], style')).map((el) => {
+    let html = el.outerHTML
+    // Rewrite relative URLs to absolute Wikipedia URLs
+    html = html.replace(/(href|src|url)\s*=\s*["']?\/(?!\/)/g, '$1="https://en.wikipedia.org/')
+    html = html.replace(/url\(['"]?\/(?!\/)/g, "url('https://en.wikipedia.org/")
+    return html
   })
 }
 

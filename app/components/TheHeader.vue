@@ -21,18 +21,6 @@ async function handleFetch() {
         <span class="hidden sm:inline">wikipedia-translation-helper</span>
       </div>
 
-      <div v-if="blocks.length > 0" class="flex items-center gap-2">
-        <button 
-          @click="clearArticle"
-          class="text-gray-500 hover:text-gray-700 flex items-center gap-1 text-sm font-medium px-2 py-1 rounded hover:bg-gray-100"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-          Back to List
-        </button>
-      </div>
-
       <div class="flex-1 min-w-[300px] flex gap-2">
         <input
           v-model="title"

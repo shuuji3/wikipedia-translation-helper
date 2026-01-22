@@ -14,6 +14,14 @@ export function useTranslation() {
     return activeTitle.value.trim().replace(/\s+/g, '_')
   })
 
+  // Progress calculation
+  const { blocks } = useWikipediaArticle()
+  const progress = computed(() => {
+    if (!blocks.value.length) return 0
+    const translatedCount = Object.keys(translatedContent.value).length
+    return Math.round((translatedCount / blocks.value.length) * 100)
+  })
+
   // Setup Persistence for translations based on ACTIVE title
   usePersistentState(
     translatedContent, 
@@ -64,6 +72,6 @@ export function useTranslation() {
 
   return {
     translatingId, selectedId, selectedTextSnippet, translatedContent,
-    translateBlock, resetTranslation
+    progress, translateBlock, resetTranslation
   }
 }
