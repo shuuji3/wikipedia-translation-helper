@@ -41,6 +41,9 @@ export default defineEventHandler(async (event) => {
         ],
         generationConfig: {
           temperature: 0.1, // Ensure consistent academic output
+          thinking_config: {
+            include_thoughts: false,
+          },
         }
       }
     })
