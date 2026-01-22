@@ -8,9 +8,24 @@ export interface TranslationBlock {
 export function useWikipediaArticle() {
   const config = useRuntimeConfig()
   
-  // SHARED STATE (useState): Needed across multiple components
-  const title = useState<string>('wikiTitle', () => '')
-  const blocks = useState<TranslationBlock[]>('wikiBlocks', () => [])
+  // SHARED STATE: title is the entry point for article fetching.
+  // Persist the last active title to allow resuming work after reload.
+  const title = usePersistentState<string>(() => 'lastActiveTitle', '')
+
+  /**
+   * articleId is a normalized version of the title used for storage keys.
+   */
+  const articleId = computed(() => {
+    if (!title.value) return null
+    return title.value.trim().replace(/\s+/g, '_')
+  })
+  
+  // PERSISTENT STATE: blocks are saved per articleId.
+  const blocks = usePersistentState<TranslationBlock[]>(
+    () => articleId.value ? `${articleId.value}:blocks` : null,
+    []
+  )
+
   const bodyClass = useState<string>('wikiBodyClass', () => '')
   const generatedWikitext = useState<string>('wikiGeneratedWikitext', () => '')
   // isFetching is shared between TheHeader and TranslationGrid

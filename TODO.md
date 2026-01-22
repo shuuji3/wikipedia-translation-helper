@@ -36,5 +36,13 @@
 - [x] Create `server/api/wiki/serialize.post.ts` to convert integrated HTML back to Wikitext.
 - [x] Implement a feature to reconstruct the full article HTML and convert it to Wikitext.
 
+### Phase 6: Persistence & Multi-article Support
+- [x] Set up IndexedDB storage using `unstorage` with base 'wikipedia-translation-helper'.
+- [x] Implement `usePersistentState` composable with auto-save debounce.
+- [x] Implement `articleId` generation in `useWikipediaArticle`.
+- [x] Migrate `blocks` and `title` to persistent state in `useWikipediaArticle`.
+- [x] Migrate `translatedContent` to persistent state in `useTranslation`.
+- [ ] Add ArticleSelector UI to manage saved articles.
+
 ## Known Issues
 - [ ] Intermittent "NetworkError / No Response" during long translation tasks (Firefox/General).

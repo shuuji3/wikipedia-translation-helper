@@ -3,10 +3,20 @@ import type { TranslationBlock } from './useWikipediaArticle'
 // Global state for translation to be shared across components
 export function useTranslation() {
   const config = useRuntimeConfig()
+  const { title } = useWikipediaArticle()
+
+  const articleId = computed(() => {
+    if (!title.value) return null
+    return title.value.trim().replace(/\s+/g, '_')
+  })
+
   const translatingId = useState<string | null>('translatingId', () => null)
   const selectedId = useState<string | null>('selectedId', () => null)
   const selectedTextSnippet = useState<string>('selectedTextSnippet', () => '')
-  const translatedContent = useState<Record<string, string>>('translatedContent', () => ({}))
+  const translatedContent = usePersistentState<Record<string, string>>(
+    () => articleId.value ? `${articleId.value}:translations` : null,
+    {}
+  )
 
   async function translateBlock(block: TranslationBlock) {
     const id = block.id
