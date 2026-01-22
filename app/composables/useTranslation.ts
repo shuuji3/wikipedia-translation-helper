@@ -2,21 +2,15 @@ import type { TranslationBlock } from './useWikipediaArticle'
 
 export function useTranslation() {
   const config = useRuntimeConfig()
-  const { activeTitle } = useWikipediaArticle()
+  const { activeTitle, activeArticleId, updateSavedArticlesList, blocks } = useWikipediaArticle()
 
   const translatedContent = useState<Record<string, string>>('wiki-translated-content', () => ({}))
   const translatingId = useState<string | null>('translatingId', () => null)
   const selectedId = useState<string | null>('selectedId', () => null)
   const selectedTextSnippet = useState<string>('selectedTextSnippet', () => '')
 
-  const activeArticleId = computed(() => {
-    if (!activeTitle.value) return null
-    return activeTitle.value.trim().replace(/\s+/g, '_')
-  })
-
-  // Progress calculation
-  const { blocks } = useWikipediaArticle()
   const progress = computed(() => {
+
     if (!blocks.value.length) return 0
     const translatedCount = Object.keys(translatedContent.value).length
     return Math.round((translatedCount / blocks.value.length) * 100)
@@ -29,6 +23,13 @@ export function useTranslation() {
     {},
     true
   )
+
+  // Sync with history only if there is at least one translated block
+  watch(translatedContent, (newVal) => {
+    if (Object.keys(newVal).length > 0) {
+      updateSavedArticlesList()
+    }
+  }, { deep: true })
 
   async function translateBlock(block: TranslationBlock) {
     const id = block.id

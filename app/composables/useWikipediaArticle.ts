@@ -133,7 +133,6 @@ export function useWikipediaArticle() {
       processContainer(doc.body)
       
       blocks.value = collectedBlocks
-      updateSavedArticlesList()
     } catch (error) {
       console.error('Failed to fetch article:', error)
       alert('Failed to fetch article.')
@@ -188,8 +187,9 @@ export function useWikipediaArticle() {
   }
 
   return {
-    title, activeTitle, isFetching, isBlocksLoading, blocks, savedArticles, bodyClass, articleStyles,
+    title, activeTitle, activeArticleId, isFetching, isBlocksLoading, blocks, savedArticles, bodyClass, articleStyles,
     isSerializing, generatedWikitext, isCopied,
-    fetchArticle, loadArticleFromList, clearArticle, removeArticle, generateWikitext, copyToClipboard
+    fetchArticle, loadArticleFromList, clearArticle, removeArticle, generateWikitext, copyToClipboard,
+    updateSavedArticlesList
   }
 }
