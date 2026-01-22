@@ -54,9 +54,8 @@ function handleInput() {
 
   <div 
     v-else-if="!isHidden"
-    class="flex border-b border-gray-100 min-h-[4rem] group hover:bg-blue-50/20 transition-colors cursor-pointer"
+    class="flex border-b border-gray-100 min-h-[4rem]"
     :data-selected="selectedId === block.id"
-    @click="handleClick"
   >
     <!-- Left Column: English Original -->
     <div 
@@ -68,7 +67,8 @@ function handleInput() {
 
     <!-- Right Column: Japanese Translation -->
     <div 
-      class="w-1/2 p-6 bg-white relative"
+      class="w-1/2 p-6 bg-white relative group hover:bg-blue-50/30 transition-colors cursor-pointer"
+      @click="handleClick"
     >
       <!-- Loading State -->
       <div v-if="translatingId === block.id" class="flex flex-col gap-3">
