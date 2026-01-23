@@ -24,19 +24,13 @@ export function useTranslation() {
     true
   )
 
-  // Sync with history only if there is at least one translated block
-  watch(translatedContent, (newVal) => {
-    if (Object.keys(newVal).length > 0) {
-      updateSavedArticlesList()
-    }
-  }, { deep: true })
-
   async function translateBlock(block: TranslationBlock) {
     const id = block.id
     selectedId.value = id
 
     if (['STYLE', 'LINK', 'META', 'NOSCRIPT'].includes(block.tagName)) {
       translatedContent.value[id] = block.html
+      updateSavedArticlesList()
       return
     }
 
@@ -57,6 +51,7 @@ export function useTranslation() {
       })
       const finalized = await finalizeTranslation(response.translated, block.vault, config)
       translatedContent.value[id] = finalized
+      updateSavedArticlesList()
     } catch (error) {
       console.error('Translation failed:', error)
     } finally {

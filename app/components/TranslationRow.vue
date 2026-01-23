@@ -30,6 +30,13 @@ watch(isEditing, (val) => {
     nextTick(() => {
       if (editorRef.value) {
         editorRef.value.innerHTML = translatedContent.value[props.block.id] || ''
+        
+        // Protect special Wikipedia elements from direct text editing
+        const protectable = editorRef.value.querySelectorAll('[typeof], [rel="mw:WikiLink"]')
+        protectable.forEach(el => {
+          el.setAttribute('contenteditable', 'false')
+        })
+
         editorRef.value.focus()
       }
     })
