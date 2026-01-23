@@ -13,8 +13,13 @@ const isEditing = ref(false)
 const isStyleTag = computed(() => props.block.tagName === 'STYLE')
 const isHidden = computed(() => ['LINK', 'META', 'NOSCRIPT'].includes(props.block.tagName))
 
-function handleClick() {
+function handleClick(e: Event) {
   if (isFetching.value || isStyleTag.value) return
+
+  // Prevent navigation if a link was clicked in the preview
+  if (!isEditing.value) {
+    e.preventDefault()
+  }
   
   if (!translatedContent.value[props.block.id]) {
     translateBlock(props.block)
@@ -165,9 +170,19 @@ function handleBlur(e: Event) {
   border-radius: 2px;
 }
 
+/* Preview mode: let clicks pass through to the container to trigger editing */
+:deep(.wikipedia-content) [rel="mw:WikiLink"],
+:deep(.wikipedia-content) [typeof="mw:Transclusion"] {
+  pointer-events: none;
+}
+
+/* Editor mode: make protected chips behave as solid selectable blocks */
 :deep(.wikipedia-content-editor) [contenteditable="false"] {
-  cursor: default;
-  user-select: none;
+  display: inline-block;
+  vertical-align: baseline;
+  cursor: pointer;
+  user-select: all;
+  pointer-events: auto;
 }
 
 [data-selected="true"] {
