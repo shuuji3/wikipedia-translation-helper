@@ -2,6 +2,63 @@
 const { blocks, isFetching, isBlocksLoading, bodyClass } = useWikipediaArticle()
 const { progress } = useTranslation()
 
+const tooltipRef = ref<HTMLElement | null>(null)
+
+// Tooltip state
+const tooltip = reactive({
+  show: false,
+  data: null as any,
+  x: 0,
+  y: 0
+})
+
+function handleGlobalMouseOver(e: MouseEvent) {
+  const target = (e.target as HTMLElement).closest('[data-tooltip]') as HTMLElement
+  if (target) {
+    try {
+      const json = target.getAttribute('data-tooltip') || ''
+      if (json) {
+        tooltip.data = JSON.parse(json)
+        tooltip.show = true
+        // Position will be updated by mousemove or the next tick
+      }
+    } catch (e) {
+      tooltip.show = false
+    }
+  } else {
+    tooltip.show = false
+  }
+}
+
+function handleGlobalMouseMove(e: MouseEvent) {
+  if (tooltip.show) {
+    updateTooltipPos(e)
+  }
+}
+
+function handleGlobalMouseOut(e: MouseEvent) {
+  const target = (e.target as HTMLElement).closest('[data-tooltip]')
+  if (target) {
+    tooltip.show = false
+  }
+}
+
+function updateTooltipPos(e: MouseEvent) {
+  const offset = 15
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+  
+  // Use actual width if available, otherwise fallback to an estimate
+  const width = tooltipRef.value?.offsetWidth || 300
+  const height = tooltipRef.value?.offsetHeight || 100
+  
+  tooltip.x = Math.min(e.clientX + offset, viewportWidth - width - 20)
+  tooltip.x = Math.max(10, tooltip.x)
+  
+  // Also prevent going off the bottom
+  tooltip.y = Math.min(e.clientY + offset, viewportHeight - height - 20)
+}
+
 useHead({
   title: 'wikipedia-translation-helper',
   link: [
@@ -19,7 +76,12 @@ useHead({
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-50 flex flex-col font-sans">
+  <div 
+    class="min-h-screen bg-gray-50 flex flex-col font-sans"
+    @mouseover="handleGlobalMouseOver"
+    @mousemove="handleGlobalMouseMove"
+    @mouseout="handleGlobalMouseOut"
+  >
     <TheHeader />
     <div class="h-2 w-full bg-gray-200 overflow-hidden sticky top-[73px] z-10">
       <div 
@@ -42,6 +104,48 @@ useHead({
       </template>
     </main>
     <WikitextExporter v-if="blocks.length > 0" />
+
+    <!-- Global Table-based Tooltip -->
+    <Teleport to="body">
+      <div 
+        v-if="tooltip.show && tooltip.data"
+        ref="tooltipRef"
+        class="fixed z-[9999] p-4 bg-white text-gray-800 rounded-lg shadow-2xl pointer-events-none border border-gray-300 w-max max-w-md"
+        :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
+      >
+        <!-- Template View -->
+        <template v-if="tooltip.data.type === 'template'">
+          <div class="flex items-center gap-2 border-b border-amber-200 pb-1.5 mb-2">
+            <span class="px-1.5 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded uppercase tracking-wider">Template</span>
+            <h3 class="text-sm font-bold text-gray-900">{{ tooltip.data.name }}</h3>
+          </div>
+          <table class="w-full text-[11px] border-collapse">
+            <tr v-for="(val, key) in tooltip.data.params" :key="key" class="border-b border-gray-100 last:border-0">
+              <td class="py-1 px-2 font-mono text-gray-900 bg-gray-100/50 font-bold w-16 align-top border-r border-gray-100 text-right">{{ key }}</td>
+              <td class="py-1 px-2 text-gray-800 break-all leading-snug">{{ val || '-' }}</td>
+            </tr>
+          </table>
+        </template>
+
+        <!-- Link View -->
+        <template v-else-if="tooltip.data.type === 'link'">
+          <div class="flex items-center gap-2 border-b border-blue-200 pb-1.5 mb-2">
+            <span class="px-1.5 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded uppercase tracking-wider">Link</span>
+            <h3 class="text-sm font-bold text-gray-900">Internal WikiLink</h3>
+          </div>
+          <table class="w-full text-[11px] border-collapse">
+            <tr class="border-b border-gray-100">
+              <td class="py-1 px-2 font-mono text-gray-900 bg-gray-100/50 font-bold w-16 border-r border-gray-100 text-right">Title</td>
+              <td class="py-1.5 px-2 text-gray-800 break-all font-medium">{{ tooltip.data.title }}</td>
+            </tr>
+            <tr>
+              <td class="py-1 px-2 font-mono text-gray-900 bg-gray-100/50 font-bold w-16 border-r border-gray-100 text-right">Label</td>
+              <td class="py-1.5 px-2 text-gray-800 break-all">{{ tooltip.data.label }}</td>
+            </tr>
+          </table>
+        </template>
+      </div>
+    </Teleport>
   </div>
 </template>
 

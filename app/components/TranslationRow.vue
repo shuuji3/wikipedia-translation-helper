@@ -169,17 +169,23 @@ function handleBlur(e: Event) {
   border-radius: 2px;
 }
 
-/* Preview mode: let clicks pass through to the container to trigger editing */
+/* Ensure mouse events are captured for tooltips, but clicks are handled by handleClick */
 :deep(.wikipedia-content) [rel="mw:WikiLink"],
 :deep(.wikipedia-content) [typeof="mw:Transclusion"] {
-  pointer-events: none;
+  pointer-events: auto;
+}
+
+/* Ensure cursor is text-style in editor even for links */
+:deep(.wikipedia-content-editor),
+:deep(.wikipedia-content-editor) [rel="mw:WikiLink"] {
+  cursor: text;
 }
 
 /* Editor mode: make protected chips behave as solid selectable blocks */
 :deep(.wikipedia-content-editor) [contenteditable="false"] {
   display: inline-block;
   vertical-align: baseline;
-  cursor: pointer;
+  cursor: default;
   user-select: all;
   pointer-events: auto;
 }
