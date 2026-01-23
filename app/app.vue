@@ -38,17 +38,17 @@ function handleGlobalMouseOver(e: MouseEvent) {
 function handleGlobalMouseOut(e: MouseEvent) {
   const target = (e.target as HTMLElement).closest('[data-tooltip]')
   if (target) {
-    // Wait briefly to see if the mouse moved into the tooltip
+    // Increase grace period to allow mouse to move into the tooltip
     setTimeout(() => {
       if (!tooltip.isHovered) {
         tooltip.show = false
       }
-    }, 50)
+    }, 300)
   }
 }
 
 function updateTooltipPos(e: MouseEvent) {
-  const offset = 15
+  const offset = 5 // Reduce offset to make it easier to reach
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
   
