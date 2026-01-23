@@ -90,9 +90,8 @@ export async function finalizeTranslation(
           "3": { wt: enTitle }
         }
 
-        // Label priority: Only include label if NO collision was detected.
-        // If there's a collision, we want the first parameter to be the edited text.
-        if (finalJaTitle === jaTitleLLM) {
+        // Only include label if it's different from the target title and no collision occurred
+        if (finalJaTitle === jaTitleLLM && jaTitleLLM !== label) {
           params["label"] = { wt: label }
         }
 
@@ -105,7 +104,10 @@ export async function finalizeTranslation(
             }
           }]
         })
-        const replacement = `<span typeof="mw:Transclusion" data-mw='${dataMw.replace(/'/g, "&apos;")}'>${finalJaTitle}</span>`
+
+        // Display text in the app: Show label if it exists, otherwise show the first parameter (target title)
+        const displayText = (params["label"] ? label : finalJaTitle)
+        const replacement = `<span typeof="mw:Transclusion" data-mw='${dataMw.replace(/'/g, "&apos;")}'>${displayText}</span>`
         return { fullTag, replacement }
       }
     } catch (e) {
