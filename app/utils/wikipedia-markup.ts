@@ -84,21 +84,28 @@ export async function finalizeTranslation(
         }
 
         // Option B: No Japanese article yet (or collision). Create mw:Transclusion HTML for {{ill}}
+        const params: any = {
+          "1": { wt: finalJaTitle },
+          "2": { wt: "en" },
+          "3": { wt: enTitle }
+        }
+
+        // Label priority: Only include label if NO collision was detected.
+        // If there's a collision, we want the first parameter to be the edited text.
+        if (finalJaTitle === jaTitleLLM) {
+          params["label"] = { wt: label }
+        }
+
         const dataMw = JSON.stringify({
           parts: [{
             template: {
               target: { wt: "Ill", href: "./Template:Ill" },
-              params: {
-                "1": { wt: finalJaTitle },
-                "2": { wt: "en" },
-                "3": { wt: enTitle },
-                "label": { wt: label }
-              },
+              params,
               i: 0
             }
           }]
         })
-        const replacement = `<span typeof="mw:Transclusion" data-mw='${dataMw.replace(/'/g, "&apos;")}'>${label}</span>`
+        const replacement = `<span typeof="mw:Transclusion" data-mw='${dataMw.replace(/'/g, "&apos;")}'>${finalJaTitle}</span>`
         return { fullTag, replacement }
       }
     } catch (e) {
