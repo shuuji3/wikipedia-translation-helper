@@ -60,20 +60,36 @@ export async function finalizeTranslation(
       // Use useRequestURL if in composable, but here we expect the origin to be passed or derived
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
       const apiPath = `${origin}${config.app.baseURL}api/wiki/langlink?title=${encodeURIComponent(enTitle)}`
+      // 1. Check official en -> ja link
       const data = await $fetch<{ targetTitle: string | null }>(apiPath)
 
       if (data.targetTitle) {
-        // Option A: Japanese article exists! Create a proper <a> tag for Parsoid
+        // Option A: Match found! Create a proper <a> tag for Parsoid
         const replacement = `<a rel="mw:WikiLink" href="./${encodeURIComponent(data.targetTitle)}" title="${data.targetTitle}">${label}</a>`
         return { fullTag, replacement }
       } else {
-        // Option B: No Japanese article yet. Create mw:Transclusion HTML for {{ill}}
+        // 2. No official link. Check Gemini's suggestion for collision (ja -> en)
+        const checkApiPath = `${origin}${config.app.baseURL}api/wiki/langlink?title=${encodeURIComponent(jaTitleLLM)}&from=ja`
+        let finalJaTitle = jaTitleLLM
+        
+        try {
+          const checkData = await $fetch<{ targetTitle: string | null }>(checkApiPath)
+          if (checkData.targetTitle && checkData.targetTitle !== enTitle) {
+            // Collision! Suggest both titles in a minimal format to be easily edited
+            finalJaTitle = `${enTitle}/${jaTitleLLM}`
+          }
+        } catch (e) {
+          // If ja-check fails, we stick with Gemini's suggestion
+          console.error('Collision check failed for:', jaTitleLLM, e)
+        }
+
+        // Option B: No Japanese article yet (or collision). Create mw:Transclusion HTML for {{ill}}
         const dataMw = JSON.stringify({
           parts: [{
             template: {
               target: { wt: "Ill", href: "./Template:Ill" },
               params: {
-                "1": { wt: jaTitleLLM },
+                "1": { wt: finalJaTitle },
                 "2": { wt: "en" },
                 "3": { wt: enTitle },
                 "label": { wt: label }
