@@ -23,28 +23,23 @@ function handleClick() {
   }
 }
 
-const textareaRef = ref<HTMLTextAreaElement | null>(null)
+const editorRef = ref<HTMLElement | null>(null)
 
 watch(isEditing, (val) => {
   if (val) {
     nextTick(() => {
-      if (textareaRef.value) {
-        textareaRef.value.focus()
-        adjustTextareaHeight()
+      if (editorRef.value) {
+        editorRef.value.innerHTML = translatedContent.value[props.block.id] || ''
+        editorRef.value.focus()
       }
     })
   }
 })
 
-function adjustTextareaHeight() {
-  if (textareaRef.value) {
-    textareaRef.value.style.height = 'auto'
-    textareaRef.value.style.height = textareaRef.value.scrollHeight + 'px'
-  }
-}
-
-function handleInput() {
-  adjustTextareaHeight()
+function handleBlur(e: Event) {
+  const el = e.target as HTMLElement
+  translatedContent.value[props.block.id] = el.innerHTML
+  isEditing.value = false
 }
 </script>
 
@@ -90,15 +85,15 @@ function handleInput() {
             v-html="translatedContent[block.id]"
           ></component>
         </div>
-        <textarea
+        <component
+          :is="block.tagName"
           v-else
-          ref="textareaRef"
-          v-model="translatedContent[block.id]"
-          @blur="isEditing = false"
+          ref="editorRef"
+          contenteditable="true"
+          class="w-full p-0 border-none focus:ring-0 bg-transparent overflow-hidden wikipedia-content-editor outline-none"
+          @blur="handleBlur"
           @keydown.esc="isEditing = false"
-          @input="handleInput"
-          class="w-full p-0 border-none focus:ring-0 bg-transparent resize-none overflow-hidden wikipedia-content-editor"
-        ></textarea>
+        ></component>
       </div>
 
       <!-- Placeholder when not translated -->
