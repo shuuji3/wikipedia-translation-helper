@@ -12,6 +12,7 @@ interface WikipediaLanglinksResponse {
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const title = query.title as string
+  const from = (query.from as string) || 'en'
 
   if (!title) {
     throw createError({
@@ -28,13 +29,16 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Wikipedia API URL for fetching language links
-  const url = 'https://en.wikipedia.org/w/api.php'
+  // Determine source domain and target language
+  const domain = from === 'ja' ? 'ja.wikipedia.org' : 'en.wikipedia.org'
+  const targetLang = from === 'ja' ? 'en' : 'ja'
+
+  const url = `https://${domain}/w/api.php`
   const params = {
     action: 'query',
     titles: title,
     prop: 'langlinks',
-    lllang: 'ja',
+    lllang: targetLang,
     format: 'json',
     origin: '*',
   }
@@ -48,24 +52,22 @@ export default defineEventHandler(async (event) => {
     })
 
     const pages = response.query?.pages
-    if (!pages) return { title, jaTitle: null }
+    if (!pages) return { title, targetTitle: null }
 
-    // Extract the first page from the result
     const pageIds = Object.keys(pages)
     if (pageIds.length === 0 || pageIds[0] === '-1') {
-      return { title, jaTitle: null }
+      return { title, targetTitle: null }
     }
 
     const pageId = pageIds[0]
     // @ts-ignore
     const langlinks = pages[pageId].langlinks
 
-    // Return the Japanese title if it exists, otherwise null
-    const jaTitle: string | null = langlinks?.[0]?.['*'] || null
+    const targetTitle: string | null = langlinks?.[0]?.['*'] || null
 
     return {
       title,
-      jaTitle,
+      targetTitle,
     }
   } catch (error: any) {
     throw createError({

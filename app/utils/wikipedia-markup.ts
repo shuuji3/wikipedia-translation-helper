@@ -60,11 +60,11 @@ export async function finalizeTranslation(
       // Use useRequestURL if in composable, but here we expect the origin to be passed or derived
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
       const apiPath = `${origin}${config.app.baseURL}api/wiki/langlink?title=${encodeURIComponent(enTitle)}`
-      const data = await $fetch<{ jaTitle: string | null }>(apiPath)
+      const data = await $fetch<{ targetTitle: string | null }>(apiPath)
 
-      if (data.jaTitle) {
+      if (data.targetTitle) {
         // Option A: Japanese article exists! Create a proper <a> tag for Parsoid
-        const replacement = `<a rel="mw:WikiLink" href="./${encodeURIComponent(data.jaTitle)}" title="${data.jaTitle}">${label}</a>`
+        const replacement = `<a rel="mw:WikiLink" href="./${encodeURIComponent(data.targetTitle)}" title="${data.targetTitle}">${label}</a>`
         return { fullTag, replacement }
       } else {
         // Option B: No Japanese article yet. Create mw:Transclusion HTML for {{ill}}
