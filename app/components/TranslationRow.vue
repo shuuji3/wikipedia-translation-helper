@@ -36,9 +36,8 @@ watch(isEditing, (val) => {
       if (editorRef.value) {
         editorRef.value.innerHTML = translatedContent.value[props.block.id] || ''
         
-        // Protect all special Wikipedia elements from direct text editing
-        // This keeps them as atomic "chips" that can be moved or deleted, but not broken
-        const protectable = editorRef.value.querySelectorAll('[typeof], [rel="mw:WikiLink"]')
+        // Protect templates but keep normal links editable
+        const protectable = editorRef.value.querySelectorAll('[typeof]')
         protectable.forEach(el => {
           el.setAttribute('contenteditable', 'false')
         })
