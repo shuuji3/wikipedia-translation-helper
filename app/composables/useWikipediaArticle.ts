@@ -250,16 +250,33 @@ export function useWikipediaArticle() {
   async function generateWikitext(translatedContent: Record<string, string>) {
     if (blocks.value.length === 0 || isSerializing.value) return
     isSerializing.value = true
+
     try {
       const fullHtml = blocks.value
-        .filter(b => translatedContent[b.id])
+        .filter(b => {
+          // Include blocks translated by the user
+          if (translatedContent[b.id]) return true
+          
+          // Include the reference definitions block (essential for resolving <ref> tags)
+          return (
+            b.html.includes('mw-ref-content') || 
+            b.html.includes('mw-references-wrap') || 
+            b.html.includes('mw:Extension/references')
+          )
+        })
         .map(b => {
-          const content = translatedContent[b.id]
-          if (['STYLE', 'LINK', 'META', 'NOSCRIPT'].includes(b.tagName)) return content
-          const tag = b.tagName.toLowerCase()
-          return `<${tag}>${content}</${tag}>`
+          const translation = translatedContent[b.id]
+          if (translation) {
+            // For translated blocks, wrap them back in their original tags
+            if (['STYLE', 'LINK', 'META', 'NOSCRIPT'].includes(b.tagName)) return translation
+            const tag = b.tagName.toLowerCase()
+            return `<${tag}>${translation}</${tag}>`
+          }
+          // For the untranslated essential blocks (like reference data), use original HTML
+          return b.html
         })
         .join('')
+
       const response = await $fetch<{ wikitext: string }>(`${window.location.origin}${config.app.baseURL}api/wiki/serialize`, {
         method: 'POST',
         body: { html: fullHtml, title: activeTitle.value }
