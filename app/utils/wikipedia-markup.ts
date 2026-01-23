@@ -108,16 +108,17 @@ export async function finalizeTranslation(
           }]
         })
 
-        // Prepare JSON data for the tooltip
+        // Prepare JSON data for the tooltip and encode it for HTML safety
         const tooltipData = {
           type: 'template',
           name: 'Ill',
           params: Object.fromEntries(Object.entries(params).map(([k, v]: [string, any]) => [k, v.wt || '']))
         }
+        const tooltipSafe = encodeURIComponent(JSON.stringify(tooltipData))
 
         // Display text in the app: Show label if it exists, otherwise show the first parameter (target title)
         const displayText = (params["label"] ? label : finalJaTitle)
-        const replacement = `<span typeof="mw:Transclusion" data-mw='${dataMw.replace(/'/g, "&apos;")}' data-tooltip='${JSON.stringify(tooltipData).replace(/'/g, "&apos;")}'>${displayText}</span>`
+        const replacement = `<span typeof="mw:Transclusion" data-mw='${dataMw.replace(/'/g, "&apos;")}' data-tooltip='${tooltipSafe}'>${displayText}</span>`
         return { fullTag, replacement }
       }
     } catch (e) {
@@ -136,7 +137,8 @@ export async function finalizeTranslation(
   // Add tooltip data to normal internal links as well
   finalized = finalized.replace(/<a rel="mw:WikiLink" href="([^"]+)" title="([^"]+)">([^<]+)<\/a>/g, (match, href, title, labelText) => {
     const tooltipData = { type: 'link', title, label: labelText }
-    return `<a rel="mw:WikiLink" href="${href}" title="${title}" data-tooltip='${JSON.stringify(tooltipData).replace(/'/g, "&apos;")}'>${labelText}</a>`
+    const tooltipSafe = encodeURIComponent(JSON.stringify(tooltipData))
+    return `<a rel="mw:WikiLink" href="${href}" title="${title}" data-tooltip='${tooltipSafe}'>${labelText}</a>`
   })
 
   // 2. Restore wp_element placeholders from vault
@@ -154,9 +156,9 @@ export async function finalizeTranslation(
         
         if (refEl) {
           const dataMwAttr = refEl.getAttribute('data-mw')
-          const label = refEl.textContent?.trim() || 'Ref'
+          const labelText = refEl.textContent?.trim() || 'Ref'
           
-          let tooltipData: any = { type: 'reference', label }
+          let tooltipData: any = { type: 'reference', label: labelText }
           
           if (dataMwAttr) {
             const data = JSON.parse(dataMwAttr)
@@ -180,7 +182,7 @@ export async function finalizeTranslation(
             }
           }
           
-          refEl.setAttribute('data-tooltip', JSON.stringify(tooltipData))
+          refEl.setAttribute('data-tooltip', encodeURIComponent(JSON.stringify(tooltipData)))
           return refEl.outerHTML
         }
       } catch (e) {

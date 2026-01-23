@@ -17,10 +17,10 @@ function handleGlobalMouseOver(e: MouseEvent) {
   const target = (e.target as HTMLElement).closest('[data-tooltip]') as HTMLElement
   if (target) {
     try {
-      const json = target.getAttribute('data-tooltip') || ''
-      if (json) {
-        // Only show and set position if not already showing the same content
-        // or if moving from one tooltip to another
+      const encodedJson = target.getAttribute('data-tooltip') || ''
+      if (encodedJson) {
+        // Decode the URI-encoded JSON data
+        const json = decodeURIComponent(encodedJson)
         const newData = JSON.parse(json)
         if (!tooltip.show || JSON.stringify(tooltip.data) !== JSON.stringify(newData)) {
           tooltip.data = newData
@@ -30,6 +30,7 @@ function handleGlobalMouseOver(e: MouseEvent) {
         }
       }
     } catch (e) {
+      console.error('Failed to parse tooltip data', e)
       tooltip.show = false
     }
   }

@@ -63,12 +63,19 @@ export function useWikipediaArticle() {
 
   // Mapping for reference content (ID/Name -> Content)
   const referenceMap = useState<Record<string, string>>('wiki-reference-map', () => ({}))
-  usePersistentState(
+  const { isInitialLoading: isRefMapLoading } = usePersistentState(
     referenceMap,
     () => activeArticleId.value ? `${activeArticleId.value}:reference-map` : null,
     {},
     true
   )
+
+  // Watch for refMap loading to debug
+  watch(isRefMapLoading, (loading) => {
+    if (!loading) {
+      console.log(`[DEBUG] referenceMap loaded from storage. Entries: ${Object.keys(referenceMap.value).length}`)
+    }
+  })
 
   // Force immediate save for activeTitle to ensure navigation is persisted before reload
   watch(activeTitle, (newVal) => {
