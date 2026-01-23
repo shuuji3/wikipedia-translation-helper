@@ -25,14 +25,16 @@ export function prepareTranslationText(target: HTMLElement, blockVault: string[]
     if (el.tagName === 'A' && el.getAttribute('rel') === 'mw:WikiLink') {
       const href = el.getAttribute('href') || ''
       const title = decodeURIComponent(href.replace(/^\.\//, '')).replace(/_/g, ' ')
-      const label = el.textContent || ''
-      const linkTag = `<wp_link title="${title}" ja="${title}">${label}</wp_link>`
-      el.replaceWith(document.createTextNode(linkTag))
+      const labelText = el.textContent || ''
+      const linkTag = `<wp_link title="${title}" ja="${title}">${labelText}</wp_link>`
+      el.insertAdjacentHTML('beforebegin', linkTag)
+      el.remove()
     } else if (el.hasAttribute('typeof')) {
       // It's a special Wikipedia element (Template, Ref, etc.)
       const index = blockVault.length
       blockVault.push(el.outerHTML)
-      el.replaceWith(document.createTextNode(`<wp_element_${index} />`))
+      el.insertAdjacentHTML('beforebegin', `<wp_element_${index} />`)
+      el.remove()
     }
   })
 
@@ -137,7 +139,8 @@ export async function finalizeTranslation(
   })
 
   // 2. Restore wp_element placeholders from vault
-  finalized = finalized.replace(/<wp_element_(\d+)\s*\/>/g, (match, index) => {
+  // Support both <wp_element_n /> and <wp_element_n></wp_element_n> formats
+  finalized = finalized.replace(/<wp_element_(\d+)[^>]*>(?:<\/wp_element_\d+>)?/g, (match, index) => {
     return blockVault[parseInt(index)] || match
   })
 
