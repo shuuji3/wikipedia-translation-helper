@@ -10,7 +10,7 @@ const tooltip = reactive({
   data: null as any,
   x: 0,
   y: 0,
-  isHovered: false // Internal logic update
+  isHovered: false // Whether the mouse is over the tooltip itself
 })
 
 function handleGlobalMouseOver(e: MouseEvent) {
@@ -19,8 +19,15 @@ function handleGlobalMouseOver(e: MouseEvent) {
     try {
       const json = target.getAttribute('data-tooltip') || ''
       if (json) {
-        tooltip.data = JSON.parse(json)
-        tooltip.show = true
+        // Only show and set position if not already showing the same content
+        // or if moving from one tooltip to another
+        const newData = JSON.parse(json)
+        if (!tooltip.show || JSON.stringify(tooltip.data) !== JSON.stringify(newData)) {
+          tooltip.data = newData
+          tooltip.show = true
+          // Fix position when first hovering
+          updateTooltipPos(e)
+        }
       }
     } catch (e) {
       tooltip.show = false
@@ -28,16 +35,10 @@ function handleGlobalMouseOver(e: MouseEvent) {
   }
 }
 
-function handleGlobalMouseMove(e: MouseEvent) {
-  if (tooltip.show && !tooltip.isHovered) {
-    updateTooltipPos(e)
-  }
-}
-
 function handleGlobalMouseOut(e: MouseEvent) {
   const target = (e.target as HTMLElement).closest('[data-tooltip]')
   if (target) {
-    // Internal logic update
+    // Wait briefly to see if the mouse moved into the tooltip
     setTimeout(() => {
       if (!tooltip.isHovered) {
         tooltip.show = false
@@ -79,7 +80,6 @@ useHead({
   <div 
     class="min-h-screen bg-gray-50 flex flex-col font-sans"
     @mouseover="handleGlobalMouseOver"
-    @mousemove="handleGlobalMouseMove"
     @mouseout="handleGlobalMouseOut"
   >
     <TheHeader />

@@ -129,16 +129,6 @@ export function useWikipediaArticle() {
       const collectedRefs: Record<string, string> = {}
       const allElementsWithTypeof = doc.querySelectorAll('[typeof]')
       
-      // Log some samples to investigate why refs aren't found
-      console.log(`[DEBUG] Found ${allElementsWithTypeof.length} elements with [typeof]. Samples:`, 
-        Array.from(allElementsWithTypeof).slice(0, 5).map(el => ({
-          tag: el.tagName,
-          typeof: el.getAttribute('typeof'),
-          hasDataMw: !!el.getAttribute('data-mw')
-        }))
-      )
-      
-      let debugLogged = false
       allElementsWithTypeof.forEach((el) => {
         const typeofAttr = el.getAttribute('typeof') || ''
         const dataMwAttr = el.getAttribute('data-mw')
@@ -146,10 +136,6 @@ export function useWikipediaArticle() {
         if (dataMwAttr && (dataMwAttr.includes('"name":"ref"') || typeofAttr.includes('ref'))) {
           try {
             const data = JSON.parse(dataMwAttr)
-            if (!debugLogged) {
-              console.log('[DEBUG] Sample Ref Data-MW:', data)
-              debugLogged = true
-            }
 
             // Standard Parsoid extension format
             if (data.name === 'ref') {
@@ -207,7 +193,6 @@ export function useWikipediaArticle() {
       })
       
       referenceMap.value = collectedRefs
-      console.log(`[DEBUG] Final unique references collected: ${Object.keys(collectedRefs).length}`)
 
       const collectedBlocks: TranslationBlock[] = []
       function processContainer(container: Element) {
