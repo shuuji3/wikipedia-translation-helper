@@ -6,7 +6,7 @@ const props = defineProps<{
 }>()
 
 const { translateBlock, translatingId, selectedId, translatedContent } = useTranslation()
-const { isFetching, bodyClass } = useWikipediaArticle()
+const { isFetching, bodyClass, updateSavedArticlesList } = useWikipediaArticle()
 
 const isEditing = ref(false)
 
@@ -25,6 +25,15 @@ function handleClick(e: Event) {
     translateBlock(props.block)
   } else {
     isEditing.value = true
+  }
+}
+
+function handleClear(e: Event) {
+  e.stopPropagation()
+  if (confirm('Clear this translation?')) {
+    delete translatedContent.value[props.block.id]
+    isEditing.value = false
+    updateSavedArticlesList()
   }
 }
 
@@ -74,9 +83,22 @@ function handleBlur(e: Event) {
 
     <!-- Right Column: Japanese Translation -->
     <div 
-      class="w-1/2 p-6 bg-white relative group hover:bg-blue-50/30 transition-colors cursor-pointer"
+      class="w-1/2 p-6 bg-white relative group hover:bg-blue-50/30 transition-all cursor-pointer"
+      :class="{ 'ring-2 ring-blue-600 ring-inset z-10 shadow-lg': isEditing }"
       @click="handleClick"
     >
+      <!-- Clear Button -->
+      <button
+        v-if="translatedContent[block.id] && !translatingId"
+        @click.stop="handleClear"
+        class="absolute top-2 right-2 p-1.5 bg-gray-100 hover:bg-red-100 text-gray-400 hover:text-red-600 rounded-md opacity-0 group-hover:opacity-100 transition-all z-20"
+        title="Clear translation"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </button>
+
       <!-- Loading State -->
       <div v-if="translatingId === block.id" class="flex flex-col gap-3">
         <div class="items-center flex gap-2 text-blue-600">
