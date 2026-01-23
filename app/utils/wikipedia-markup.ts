@@ -44,7 +44,8 @@ export function prepareTranslationText(target: HTMLElement, blockVault: string[]
 export async function finalizeTranslation(
   translatedText: string, 
   blockVault: string[],
-  config: any
+  config: any,
+  referenceMap: Record<string, string> = {}
 ): Promise<string> {
   let finalized = translatedText
 
@@ -141,7 +142,53 @@ export async function finalizeTranslation(
   // 2. Restore wp_element placeholders from vault
   // Support both <wp_element_n /> and <wp_element_n></wp_element_n> formats
   finalized = finalized.replace(/<wp_element_(\d+)[^>]*>(?:<\/wp_element_\d+>)?/g, (match, index) => {
-    return blockVault[parseInt(index)] || match
+    const originalHtml = blockVault[parseInt(index)]
+    if (!originalHtml) return match
+
+    // If it's a reference (citation), try to add a tooltip
+    if (originalHtml.includes('typeof="mw:Extension/ref"')) {
+      try {
+        const parser = new DOMParser()
+        const doc = parser.parseFromString(originalHtml, 'text/html')
+        const refEl = doc.body.firstElementChild as HTMLElement
+        
+        if (refEl) {
+          const dataMwAttr = refEl.getAttribute('data-mw')
+          const label = refEl.textContent?.trim() || 'Ref'
+          
+          let tooltipData: any = { type: 'reference', label }
+          
+          if (dataMwAttr) {
+            const data = JSON.parse(dataMwAttr)
+            
+            // Try to get content directly
+            let content = data.body?.extsrc
+            
+            // If empty, try to look it up from our referenceMap (by name or ID)
+            if (!content) {
+              if (data.attrs?.name) {
+                content = referenceMap[`name:${data.attrs.name}`]
+              }
+              if (!content) {
+                const refId = refEl.getAttribute('id')
+                if (refId) content = referenceMap[refId]
+              }
+            }
+            
+            if (content) {
+              tooltipData.content = content
+            }
+          }
+          
+          refEl.setAttribute('data-tooltip', JSON.stringify(tooltipData))
+          return refEl.outerHTML
+        }
+      } catch (e) {
+        console.error('Failed to add tooltip to reference:', e)
+      }
+    }
+
+    return originalHtml
   })
 
   return finalized

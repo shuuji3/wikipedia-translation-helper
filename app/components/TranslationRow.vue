@@ -190,10 +190,17 @@ function handleBlur(e: Event) {
   padding: 0 1px;
   border-radius: 2px;
 }
+:deep(.wikipedia-content) [typeof*="mw:Extension/ref"],
+:deep(.wikipedia-content-editor) [typeof*="mw:Extension/ref"] {
+  background-color: rgba(107, 114, 128, 0.1);
+  padding: 0 2px;
+  border-radius: 2px;
+}
 
 /* Ensure mouse events are captured for tooltips, but clicks are handled by handleClick */
 :deep(.wikipedia-content) [rel="mw:WikiLink"],
-:deep(.wikipedia-content) [typeof="mw:Transclusion"] {
+:deep(.wikipedia-content) [typeof="mw:Transclusion"],
+:deep(.wikipedia-content) [typeof*="mw:Extension/ref"] {
   pointer-events: auto;
 }
 

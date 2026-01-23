@@ -61,6 +61,15 @@ export function useWikipediaArticle() {
     true
   )
 
+  // Mapping for reference content (ID/Name -> Content)
+  const referenceMap = useState<Record<string, string>>('wiki-reference-map', () => ({}))
+  usePersistentState(
+    referenceMap,
+    () => activeArticleId.value ? `${activeArticleId.value}:reference-map` : null,
+    {},
+    true
+  )
+
   // Force immediate save for activeTitle to ensure navigation is persisted before reload
   watch(activeTitle, (newVal) => {
     if (import.meta.client) {
@@ -116,6 +125,90 @@ export function useWikipediaArticle() {
       bodyClass.value = doc.body.className
       articleStyles.value = extractStyles(doc)
       
+      // Extract all references to the map
+      const collectedRefs: Record<string, string> = {}
+      const allElementsWithTypeof = doc.querySelectorAll('[typeof]')
+      
+      // Log some samples to investigate why refs aren't found
+      console.log(`[DEBUG] Found ${allElementsWithTypeof.length} elements with [typeof]. Samples:`, 
+        Array.from(allElementsWithTypeof).slice(0, 5).map(el => ({
+          tag: el.tagName,
+          typeof: el.getAttribute('typeof'),
+          hasDataMw: !!el.getAttribute('data-mw')
+        }))
+      )
+      
+      let debugLogged = false
+      allElementsWithTypeof.forEach((el) => {
+        const typeofAttr = el.getAttribute('typeof') || ''
+        const dataMwAttr = el.getAttribute('data-mw')
+        
+        if (dataMwAttr && (dataMwAttr.includes('"name":"ref"') || typeofAttr.includes('ref'))) {
+          try {
+            const data = JSON.parse(dataMwAttr)
+            if (!debugLogged) {
+              console.log('[DEBUG] Sample Ref Data-MW:', data)
+              debugLogged = true
+            }
+
+            // Standard Parsoid extension format
+            if (data.name === 'ref') {
+              const name = data.attrs?.name
+              let content = data.body?.extsrc
+              
+              // If content is not in JSON, look for it in the document using the provided ID
+              if (!content && data.body?.id) {
+                const actualRefEl = doc.getElementById(data.body.id)
+                if (actualRefEl) {
+                  // Clean up the reference content: remove backlinks, links, and styles
+                  let html = actualRefEl.innerHTML
+                  html = html.replace(/<span class="mw-cite-backlink">.*?<\/span>/g, '')
+                  html = html.replace(/<(link|style)[^>]*>.*?<\/\1>/gi, '')
+                  html = html.replace(/<(link|style)[^>]*>/gi, '')
+                  content = html.trim()
+                }
+              }
+
+              if (content) {
+                if (name) collectedRefs[`name:${name}`] = content
+                const refId = el.getAttribute('id')
+                if (refId) collectedRefs[refId] = content
+              }
+            } 
+            // Composite template format
+            else if (data.parts) {
+              data.parts.forEach((part: any) => {
+                const ext = part.extension
+                if (ext && ext.name === 'ref') {
+                  const name = ext.attrs?.name
+                  let content = ext.body?.extsrc
+
+                  if (!content && ext.body?.id) {
+                    const actualRefEl = doc.getElementById(ext.body.id)
+                    if (actualRefEl) {
+                      let html = actualRefEl.innerHTML
+                      html = html.replace(/<span class="mw-cite-backlink">.*?<\/span>/g, '')
+                      html = html.replace(/<(link|style)[^>]*>.*?<\/\1>/gi, '')
+                      html = html.replace(/<(link|style)[^>]*>/gi, '')
+                      content = html.trim()
+                    }
+                  }
+
+                  if (content) {
+                    if (name) collectedRefs[`name:${name}`] = content
+                    const refId = el.getAttribute('id')
+                    if (refId) collectedRefs[refId] = content
+                  }
+                }
+              });
+            }
+          } catch (e) {}
+        }
+      })
+      
+      referenceMap.value = collectedRefs
+      console.log(`[DEBUG] Final unique references collected: ${Object.keys(collectedRefs).length}`)
+
       const collectedBlocks: TranslationBlock[] = []
       function processContainer(container: Element) {
         Array.from(container.children).forEach((el) => {

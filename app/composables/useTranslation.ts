@@ -3,6 +3,9 @@ import type { TranslationBlock } from './useWikipediaArticle'
 export function useTranslation() {
   const config = useRuntimeConfig()
   const { activeTitle, activeArticleId, updateSavedArticlesList, blocks } = useWikipediaArticle()
+  
+  // Get referenceMap to pass to finalizeTranslation
+  const referenceMap = useState<Record<string, string>>('wiki-reference-map', () => ({}))
 
   const translatedContent = useState<Record<string, string>>('wiki-translated-content', () => ({}))
   const translatingId = useState<string | null>('translatingId', () => null)
@@ -49,7 +52,7 @@ export function useTranslation() {
         method: 'POST',
         body: { text: textWithPlaceholders }
       })
-      const finalized = await finalizeTranslation(response.translated, block.vault, config)
+      const finalized = await finalizeTranslation(response.translated, block.vault, config, referenceMap.value)
       translatedContent.value[id] = finalized
       updateSavedArticlesList()
     } catch (error) {

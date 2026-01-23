@@ -9,7 +9,8 @@ const tooltip = reactive({
   show: false,
   data: null as any,
   x: 0,
-  y: 0
+  y: 0,
+  isHovered: false // Internal logic update
 })
 
 function handleGlobalMouseOver(e: MouseEvent) {
@@ -20,18 +21,15 @@ function handleGlobalMouseOver(e: MouseEvent) {
       if (json) {
         tooltip.data = JSON.parse(json)
         tooltip.show = true
-        // Position will be updated by mousemove or the next tick
       }
     } catch (e) {
       tooltip.show = false
     }
-  } else {
-    tooltip.show = false
   }
 }
 
 function handleGlobalMouseMove(e: MouseEvent) {
-  if (tooltip.show) {
+  if (tooltip.show && !tooltip.isHovered) {
     updateTooltipPos(e)
   }
 }
@@ -39,7 +37,12 @@ function handleGlobalMouseMove(e: MouseEvent) {
 function handleGlobalMouseOut(e: MouseEvent) {
   const target = (e.target as HTMLElement).closest('[data-tooltip]')
   if (target) {
-    tooltip.show = false
+    // Internal logic update
+    setTimeout(() => {
+      if (!tooltip.isHovered) {
+        tooltip.show = false
+      }
+    }, 50)
   }
 }
 
@@ -48,14 +51,11 @@ function updateTooltipPos(e: MouseEvent) {
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
   
-  // Use actual width if available, otherwise fallback to an estimate
   const width = tooltipRef.value?.offsetWidth || 300
   const height = tooltipRef.value?.offsetHeight || 100
   
   tooltip.x = Math.min(e.clientX + offset, viewportWidth - width - 20)
   tooltip.x = Math.max(10, tooltip.x)
-  
-  // Also prevent going off the bottom
   tooltip.y = Math.min(e.clientY + offset, viewportHeight - height - 20)
 }
 
@@ -110,8 +110,10 @@ useHead({
       <div 
         v-if="tooltip.show && tooltip.data"
         ref="tooltipRef"
-        class="fixed z-[9999] p-4 bg-white text-gray-800 rounded-lg shadow-2xl pointer-events-none border border-gray-300 w-max max-w-md"
+        class="fixed z-[9999] p-4 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-300 w-max max-w-md pointer-events-auto"
         :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
+        @mouseenter="tooltip.isHovered = true"
+        @mouseleave="tooltip.isHovered = false; tooltip.show = false"
       >
         <!-- Template View -->
         <template v-if="tooltip.data.type === 'template'">
@@ -143,6 +145,19 @@ useHead({
               <td class="py-1.5 px-2 text-gray-800 break-all">{{ tooltip.data.label }}</td>
             </tr>
           </table>
+        </template>
+
+        <!-- Reference View -->
+        <template v-else-if="tooltip.data.type === 'reference'">
+          <div class="flex items-center gap-2 border-b border-gray-200 pb-1.5 mb-2">
+            <span class="px-1.5 py-0.5 bg-gray-500 text-white text-[10px] font-bold rounded uppercase tracking-wider">Reference</span>
+            <h3 class="text-sm font-bold text-gray-900">{{ tooltip.data.label }}</h3>
+          </div>
+          <div 
+            v-if="tooltip.data.content" 
+            class="text-[11px] text-gray-700 leading-relaxed max-h-48 overflow-y-auto font-serif italic bg-gray-50 p-2 rounded border border-gray-100"
+            v-html="tooltip.data.content"
+          ></div>
         </template>
       </div>
     </Teleport>
