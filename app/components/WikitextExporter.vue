@@ -4,6 +4,8 @@ const { translatedContent } = useTranslation()
 
 const isExpanded = ref(false)
 
+const hasTranslations = computed(() => Object.keys(translatedContent.value).length > 0)
+
 function handleGenerate() {
   generateWikitext(translatedContent.value)
   isExpanded.value = true
@@ -50,7 +52,7 @@ function toggleExpand() {
           
           <button
             @click="handleGenerate"
-            :disabled="isSerializing"
+            :disabled="isSerializing || !hasTranslations"
             class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <span v-if="isSerializing" class="inline-block animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></span>
@@ -59,7 +61,7 @@ function toggleExpand() {
           
           <button
             @click="copyToClipboard"
-            :disabled="!generatedWikitext"
+            :disabled="!generatedWikitext || !hasTranslations"
             class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center gap-2 min-w-[100px] justify-center"
           >
               {{ isCopied ? 'Copied!' : 'Copy' }}
