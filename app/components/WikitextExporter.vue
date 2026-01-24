@@ -62,7 +62,7 @@ function toggleExpand() {
           <button
             @click="copyToClipboard"
             :disabled="!generatedWikitext || !hasTranslations"
-            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center gap-2 min-w-[100px] justify-center"
+            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-md font-medium transition-colors disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center gap-2 min-w-[100px] justify-center"
           >
               {{ isCopied ? 'Copied!' : 'Copy' }}
           </button>
