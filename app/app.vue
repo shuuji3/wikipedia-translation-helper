@@ -90,7 +90,7 @@ useHead({
         :style="{ width: progress + '%' }"
       ></div>
     </div>
-    <main class="flex-1 overflow-y-auto flex flex-col">
+    <main class="flex-1 flex flex-col">
       <NuxtPage />
     </main>
 
