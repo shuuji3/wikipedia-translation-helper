@@ -55,6 +55,10 @@
 ### Phase 8: Project Identity
 - [x] Update GitHub description and README to reflect tool focus and LLM performance improvements.
 
-## Known Issues
+### Phase 9: Routing & UX Improvements
+- [x] Set up Nuxt routing with `pages/` directory.
+- [x] Implement URL-based article loading (e.g., `/[title]`).
+- [x] Refactor `app.vue` into a layout-like structure with `NuxtPage`.
+- [x] Update `useWikipediaArticle` to sync state with route params.
 - [x] Fix generated Wikitext to only include translated content and preserve HTML structure.
 - [ ] Intermittent "NetworkError / No Response" during long translation tasks (Firefox/General).

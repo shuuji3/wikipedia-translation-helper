@@ -3,8 +3,9 @@ import type { ArticleMetadata } from '../composables/useWikipediaArticle'
 
 const { savedArticles, loadArticleFromList, removeArticle } = useWikipediaArticle()
 
-function loadArticle(article: ArticleMetadata) {
+async function loadArticle(article: ArticleMetadata) {
   loadArticleFromList(article)
+  await navigateTo(`/${encodeURIComponent(article.title)}`)
 }
 
 function handleDelete(e: Event, id: string) {

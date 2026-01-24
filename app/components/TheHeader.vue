@@ -1,12 +1,16 @@
 <script setup lang="ts">
-const { title, isFetching, fetchArticle, clearArticle, blocks } = useWikipediaArticle()
+const { title, isFetching, clearArticle } = useWikipediaArticle()
 const { resetTranslation } = useTranslation()
 
 async function handleFetch() {
-  // If title is same and we already have blocks, no need to re-fetch unless explicitly asked
-  // But for now, we keep the original logic for simplicity.
+  if (!title.value) return
   resetTranslation()
-  await fetchArticle()
+  await navigateTo(`/${encodeURIComponent(title.value)}`)
+}
+
+async function handleLogoClick() {
+  clearArticle()
+  await navigateTo('/')
 }
 </script>
 
@@ -15,7 +19,7 @@ async function handleFetch() {
     <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-4">
       <div
         class="brand-title flex items-center gap-2 cursor-pointer"
-        @click="clearArticle"
+        @click="handleLogoClick"
       >
         <span></span>
         <span class="flex items-center">
