@@ -297,10 +297,21 @@ export function useWikipediaArticle() {
     setTimeout(() => { isCopied.value = false }, 2000)
   }
 
+  async function suggestArticles(query: string) {
+    if (!query || query.length < 2) return []
+    try {
+      const origin = typeof window !== 'undefined' ? window.location.origin : ''
+      return await $fetch<string[]>(`${origin}${config.app.baseURL}api/wiki/suggest?q=${encodeURIComponent(query)}`)
+    } catch (error) {
+      console.error('Failed to fetch suggestions:', error)
+      return []
+    }
+  }
+
   return {
     title, activeTitle, activeArticleId, isFetching, isBlocksLoading, blocks, savedArticles, bodyClass, articleStyles,
     isSerializing, generatedWikitext, isCopied,
     fetchArticle, loadArticleFromList, clearArticle, removeArticle, generateWikitext, copyToClipboard,
-    updateSavedArticlesList
+    updateSavedArticlesList, suggestArticles
   }
 }

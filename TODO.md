@@ -62,3 +62,6 @@
 - [x] Update `useWikipediaArticle` to sync state with route params.
 - [x] Fix generated Wikitext to only include translated content and preserve HTML structure.
 - [ ] Intermittent "NetworkError / No Response" during long translation tasks (Firefox/General).
+
+### Phase 10: UX Enhancements
+- [x] Implement Wikipedia article suggestion in the search input.
