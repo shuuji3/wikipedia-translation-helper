@@ -248,7 +248,7 @@ export function useWikipediaArticle() {
   }
 
   async function generateWikitext(translatedContent: Record<string, string>) {
-    if (blocks.value.length === 0 || isSerializing.value) return
+    if (blocks.value.length === 0 || !activeTitle.value || isSerializing.value) return
     isSerializing.value = true
 
     try {

@@ -27,7 +27,9 @@ export function usePersistentState<T extends StorageValue>(state: Ref<T>, keyGet
       try {
         const saved = await storage.getItem<T>(newKey)
         if (saved !== null) {
-          state.value = saved
+          if (JSON.stringify(state.value) === JSON.stringify(defaultValue)) {
+            state.value = saved
+          }
         } else {
           state.value = JSON.parse(JSON.stringify(defaultValue))
         }
