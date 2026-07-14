@@ -52,10 +52,10 @@ function updateTooltipPos(e: MouseEvent) {
   const offset = 5 // Reduce offset to make it easier to reach
   const viewportWidth = window.innerWidth
   const viewportHeight = window.innerHeight
-  
+
   const width = tooltipRef.value?.offsetWidth || 300
   const height = tooltipRef.value?.offsetHeight || 100
-  
+
   tooltip.x = Math.min(e.clientX + offset, viewportWidth - width - 20)
   tooltip.x = Math.max(10, tooltip.x)
   tooltip.y = Math.min(e.clientY + offset, viewportHeight - height - 20)
@@ -69,6 +69,13 @@ useHead({
       rel: 'stylesheet',
       // Use the raw URL without any pre-processing to avoid double-encoding of '&'
       href: 'https://en.wikipedia.org/w/load.php?lang=en&modules=mediawiki.skinning.content.parsoid%7Cmediawiki.skinning.interface%7Csite.styles&only=styles&skin=vector'
+    },
+  ],
+  script: [
+    {
+      src: 'https://umami.shuuji3.xyz/script.js',
+      defer: true,
+      'data-website-id': 'b8943582-7222-4620-b562-b07c3da4b39f'
     }
   ],
   bodyAttrs: {
@@ -78,15 +85,15 @@ useHead({
 </script>
 
 <template>
-  <div 
+  <div
     class="min-h-screen bg-gray-50 flex flex-col font-sans"
     @mouseover="handleGlobalMouseOver"
     @mouseout="handleGlobalMouseOut"
   >
     <TheHeader />
     <div class="h-2 w-full bg-gray-200 overflow-hidden sticky top-[73px] z-10">
-      <div 
-        class="h-full bg-blue-600 transition-all duration-500 ease-out" 
+      <div
+        class="h-full bg-blue-600 transition-all duration-500 ease-out"
         :style="{ width: progress + '%' }"
       ></div>
     </div>
@@ -96,7 +103,7 @@ useHead({
 
     <!-- Global Table-based Tooltip -->
     <Teleport to="body">
-      <div 
+      <div
         v-if="tooltip.show && tooltip.data"
         ref="tooltipRef"
         class="fixed z-[9999] p-4 bg-white text-gray-800 rounded-lg shadow-2xl border border-gray-300 w-max max-w-md pointer-events-auto"
@@ -142,14 +149,18 @@ useHead({
             <span class="px-1.5 py-0.5 bg-gray-500 text-white text-[10px] font-bold rounded uppercase tracking-wider">Reference</span>
             <h3 class="text-sm font-bold text-gray-900">{{ tooltip.data.label }}</h3>
           </div>
-          <div 
-            v-if="tooltip.data.content" 
+          <div
+            v-if="tooltip.data.content"
             class="text-[11px] text-gray-700 leading-relaxed max-h-48 overflow-y-auto font-serif italic bg-gray-50 p-2 rounded border border-gray-100"
             v-html="tooltip.data.content"
           ></div>
         </template>
       </div>
     </Teleport>
+
+    <footer class="text-center text-xs text-gray-400 py-4">
+      <p>This website uses <a href="https://umami.shuuji3.xyz" class="text-gray-400 underline">self-hosted umami analytics</a> to understand users. No data is shared with any other parties.</p>
+    </footer>
   </div>
 </template>
 
