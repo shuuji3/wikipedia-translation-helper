@@ -1,3 +1,6 @@
+// Temporary: Gemini translation is disabled. Set to true to re-enable.
+const GEMINI_ENABLED = false
+
 export default defineEventHandler(async (event) => {
   // Set standard headers to keep connection alive when translation takes time
   setHeaders(event, {
@@ -15,6 +18,15 @@ export default defineEventHandler(async (event) => {
       statusCode: 400,
       statusMessage: 'Text is required for translation',
     })
+  }
+
+  // Temporary: skip only the Gemini call. Pass the source text through so the
+  // rest of the pipeline (link conversion, vault restore, export) keeps working.
+  if (!GEMINI_ENABLED) {
+    return {
+      original: text,
+      translated: text,
+    }
   }
 
   if (!apiKey) {
