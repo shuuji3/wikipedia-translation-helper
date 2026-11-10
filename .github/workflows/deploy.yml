@@ -41,9 +41,3 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --cwd .output
-          secrets: |
-            NUXT_GEMINI_API_KEY
-            NUXT_WIKIPEDIA_USER_AGENT
-        env:
-          NUXT_GEMINI_API_KEY: ${{ secrets.NUXT_GEMINI_API_KEY }}
-          NUXT_WIKIPEDIA_USER_AGENT: ${{ secrets.NUXT_WIKIPEDIA_USER_AGENT }}
