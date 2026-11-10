@@ -12,6 +12,36 @@ export function extractStyles(doc: Document) {
   })
 }
 
+/**
+ * Escapes a value for use inside a double-quoted HTML attribute.
+ * Wikipedia titles can legally contain quotes, which would
+ * otherwise terminate the attribute and corrupt the markup.
+ */
+function escapeAttribute(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+/** Escapes a value for use as HTML text content. */
+function escapeText(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+/** Reverses {@link escapeAttribute} for a value read back out of the markup. */
+function decodeAttribute(value: string): string {
+  return value
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+}
+
 export function prepareTranslationText(target: HTMLElement, blockVault: string[]): string {
   const clone = target.cloneNode(true) as HTMLElement
   blockVault.length = 0 // Clear the array
@@ -26,7 +56,7 @@ export function prepareTranslationText(target: HTMLElement, blockVault: string[]
       const href = el.getAttribute('href') || ''
       const title = decodeURIComponent(href.replace(/^\.\//, '')).replace(/_/g, ' ')
       const labelText = el.textContent || ''
-      const linkTag = `<wp_link title="${title}" ja="${title}">${labelText}</wp_link>`
+      const linkTag = `<wp_link title="${escapeAttribute(title)}" ja="${escapeAttribute(title)}">${escapeText(labelText)}</wp_link>`
       el.insertAdjacentHTML('beforebegin', linkTag)
       el.remove()
     } else if (el.hasAttribute('typeof')) {
@@ -49,83 +79,104 @@ export async function finalizeTranslation(
 ): Promise<string> {
   let finalized = translatedText
 
-  // 1. Convert wp_link tags using "Triple Magic" (API check + dynamic formatting)
+  // 1. Convert wp_link tags using "Triple Magic" (batched API check + dynamic formatting)
   const linkRegex = /<wp_link title="([^"]+)" ja="([^"]+)">([^<]+)<\/wp_link>/g
   const matches = [...finalized.matchAll(linkRegex)]
 
-  // Fetch langlinks for all found English titles in parallel
-  const replacements = await Promise.all(matches.map(async (match) => {
-    const fullTag = match[0]
-    const enTitle = match[1] || ''
-    const jaTitleLLM = match[2] || ''
-    const label = match[3] || ''
-    try {
-      // Use useRequestURL if in composable, but here we expect the origin to be passed or derived
-      const origin = typeof window !== 'undefined' ? window.location.origin : ''
-      const apiPath = `${origin}${config.app.baseURL}api/wiki/langlink?title=${encodeURIComponent(enTitle)}`
-      // 1. Check official en -> ja link
-      const data = await $fetch<{ targetTitle: string | null }>(apiPath)
-
-      if (data.targetTitle) {
-        // Option A: Match found! Create a proper <a> tag for Parsoid
-        const replacement = `<a rel="mw:WikiLink" href="./${encodeURIComponent(data.targetTitle)}" title="${data.targetTitle}">${label}</a>`
-        return { fullTag, replacement }
-      } else {
-        // 2. No official link. Check Gemini's suggestion for collision (ja -> en)
-        const checkApiPath = `${origin}${config.app.baseURL}api/wiki/langlink?title=${encodeURIComponent(jaTitleLLM)}&from=ja`
-        let finalJaTitle = jaTitleLLM
-        
-        try {
-          const checkData = await $fetch<{ targetTitle: string | null }>(checkApiPath)
-          if (checkData.targetTitle && checkData.targetTitle !== enTitle) {
-            // Collision! Suggest both titles in a minimal format to be easily edited
-            finalJaTitle = `${enTitle}/${jaTitleLLM}`
-          }
-        } catch (e) {
-          // If ja-check fails, we stick with Gemini's suggestion
-          console.error('Collision check failed for:', jaTitleLLM, e)
-        }
-
-        // Option B: No Japanese article yet (or collision). Create mw:Transclusion HTML for {{ill}}
-        const params: any = {
-          "1": { wt: finalJaTitle },
-          "2": { wt: "en" },
-          "3": { wt: enTitle }
-        }
-
-        // Only include label if it's different from the target title and no collision occurred
-        if (finalJaTitle === jaTitleLLM && jaTitleLLM !== label) {
-          params["label"] = { wt: label }
-        }
-
-        const dataMw = JSON.stringify({
-          parts: [{
-            template: {
-              target: { wt: "Ill", href: "./Template:Ill" },
-              params,
-              i: 0
-            }
-          }]
-        })
-
-        // Prepare JSON data for the tooltip and encode it for HTML safety
-        const tooltipData = {
-          type: 'template',
-          name: 'Ill',
-          params: Object.fromEntries(Object.entries(params).map(([k, v]: [string, any]) => [k, v.wt || '']))
-        }
-        const tooltipSafe = encodeURIComponent(JSON.stringify(tooltipData))
-
-        // Display text in the app: Show label if it exists, otherwise show the first parameter (target title)
-        const displayText = (params["label"] ? label : finalJaTitle)
-        const replacement = `<span typeof="mw:Transclusion" data-mw='${dataMw.replace(/'/g, "&apos;")}' data-tooltip='${tooltipSafe}'>${displayText}</span>`
-        return { fullTag, replacement }
-      }
-    } catch (e) {
-      console.error('Langlink API failed for:', enTitle, e)
-      return { fullTag, replacement: label }
+  // Batch langlink lookups instead of one request per link, and chunk to keep URLs small.
+  async function fetchLanglinkBatch(titles: string[], from: 'en' | 'ja'): Promise<Record<string, string | null>> {
+    const results: Record<string, string | null> = {}
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    for (let index = 0; index < titles.length; index += 40) {
+      const group = titles.slice(index, index + 40)
+      const params = new URLSearchParams({ titles: group.join('|'), from })
+      const data = await $fetch<{ results: Record<string, string | null> }>(
+        `${origin}${config.app.baseURL}api/wiki/langlink?${params.toString()}`
+      )
+      Object.assign(results, data.results)
     }
-  }))
+    return results
+  }
+
+  const enTitles = [...new Set(matches.map(match => match[1]).filter((title): title is string => !!title))]
+  let enLanglinks: Record<string, string | null> = {}
+  try {
+    enLanglinks = await fetchLanglinkBatch(enTitles, 'en')
+  } catch (e) {
+    console.error('Langlink batch fetch failed:', e)
+  }
+
+  // Only check ja -> en for links that have no official en -> ja link.
+  const jaTitles = [...new Set(
+    matches
+      .filter(match => !enLanglinks[match[1] || ''])
+      .map(match => match[2])
+      .filter((title): title is string => !!title)
+  )]
+  let jaLanglinks: Record<string, string | null> = {}
+  try {
+    jaLanglinks = await fetchLanglinkBatch(jaTitles, 'ja')
+  } catch (e) {
+    console.error('Langlink collision batch fetch failed:', e)
+  }
+
+  const replacements = matches.map((match) => {
+    const fullTag = match[0]
+    const enTitle = decodeAttribute(match[1] || '')
+    const jaTitleLLM = decodeAttribute(match[2] || '')
+    const label = decodeAttribute(match[3] || '')
+
+    // 1. Official en -> ja link.
+    const officialJaTitle = enLanglinks[enTitle]
+    if (officialJaTitle) {
+      // Option A: Match found! Create a proper <a> tag for Parsoid
+      const replacement = `<a rel="mw:WikiLink" href="./${encodeURIComponent(officialJaTitle)}" title="${escapeAttribute(officialJaTitle)}">${escapeText(label)}</a>`
+      return { fullTag, replacement }
+    }
+
+    // 2. No official link. Check Gemini's suggestion for collision (ja -> en).
+    let finalJaTitle = jaTitleLLM
+    const collisionTitle = jaLanglinks[jaTitleLLM]
+    if (collisionTitle && collisionTitle !== enTitle) {
+      // Collision! Suggest both titles in a minimal format to be easily edited
+      finalJaTitle = `${enTitle}/${jaTitleLLM}`
+    }
+
+    // Option B: No Japanese article yet (or collision). Create mw:Transclusion HTML for {{ill}}
+    const params: any = {
+      "1": { wt: finalJaTitle },
+      "2": { wt: "en" },
+      "3": { wt: enTitle }
+    }
+
+    // Only include label if it's different from the target title and no collision occurred
+    if (finalJaTitle === jaTitleLLM && jaTitleLLM !== label) {
+      params["label"] = { wt: label }
+    }
+
+    const dataMw = JSON.stringify({
+      parts: [{
+        template: {
+          target: { wt: "Ill", href: "./Template:Ill" },
+          params,
+          i: 0
+        }
+      }]
+    })
+
+    // Prepare JSON data for the tooltip and encode it for HTML safety
+    const tooltipData = {
+      type: 'template',
+      name: 'Ill',
+      params: Object.fromEntries(Object.entries(params).map(([k, v]: [string, any]) => [k, v.wt || '']))
+    }
+    const tooltipSafe = encodeURIComponent(JSON.stringify(tooltipData)).replace(/'/g, '%27')
+
+    // Display text in the app: Show label if it exists, otherwise show the first parameter (target title)
+    const displayText = (params["label"] ? label : finalJaTitle)
+    const replacement = `<span typeof="mw:Transclusion" data-mw='${dataMw.replace(/'/g, "&apos;")}' data-tooltip='${tooltipSafe}'>${escapeText(displayText)}</span>`
+    return { fullTag, replacement }
+  })
 
   // Apply link replacements
   replacements.forEach(({ fullTag, replacement }) => {
@@ -137,8 +188,8 @@ export async function finalizeTranslation(
   // Add tooltip data to normal internal links as well
   finalized = finalized.replace(/<a rel="mw:WikiLink" href="([^"]+)" title="([^"]+)">([^<]+)<\/a>/g, (match, href, title, labelText) => {
     const tooltipData = { type: 'link', title, label: labelText }
-    const tooltipSafe = encodeURIComponent(JSON.stringify(tooltipData))
-    return `<a rel="mw:WikiLink" href="${href}" title="${title}" data-tooltip='${tooltipSafe}'>${labelText}</a>`
+    const tooltipSafe = encodeURIComponent(JSON.stringify(tooltipData)).replace(/'/g, '%27')
+    return `<a rel="mw:WikiLink" href="${escapeAttribute(href)}" title="${escapeAttribute(title)}" data-tooltip='${tooltipSafe}'>${escapeText(labelText)}</a>`
   })
 
   // 2. Restore wp_element placeholders from vault

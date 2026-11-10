@@ -126,6 +126,11 @@ export function useWikipediaArticle() {
       const origin = typeof window !== 'undefined' ? window.location.origin : ''
       const apiPath = `${origin}${config.app.baseURL}api/wiki/parse?title=${encodeURIComponent(title.value)}`
       const data = await $fetch<{ title: string; html: string }>(apiPath)
+
+      // Re-assert the title: usePersistentState's async load can write its
+      // default '' back into activeTitle while this request is in flight,
+      // which makes generateWikitext() return early.
+      activeTitle.value = title.value
       
       const parser = new DOMParser()
       const doc = parser.parseFromString(data.html, 'text/html')
@@ -248,38 +253,47 @@ export function useWikipediaArticle() {
   }
 
   async function generateWikitext(translatedContent: Record<string, string>) {
-    if (blocks.value.length === 0 || !activeTitle.value || isSerializing.value) return
+    // activeTitle can be cleared by a race with the async persistent-state
+    // load, so fall back to the title input rather than silently doing nothing.
+    const targetTitle = activeTitle.value || title.value
+    if (blocks.value.length === 0 || !targetTitle || isSerializing.value) return
     isSerializing.value = true
 
     try {
+      // Output only the sections the user translated. Reference-definition
+      // blocks are excluded: they are rendered Parsoid HTML, and MediaWiki
+      // rebuilds the reference list from the <ref> tags itself.
       const fullHtml = blocks.value
-        .filter(b => {
-          // Include blocks translated by the user
-          if (translatedContent[b.id]) return true
-          
-          // Include the reference definitions block (essential for resolving <ref> tags)
-          return (
-            b.html.includes('mw-ref-content') || 
-            b.html.includes('mw-references-wrap') || 
-            b.html.includes('mw:Extension/references')
-          )
-        })
+        .filter(b => (translatedContent[b.id] || '').trim().length > 0)
         .map(b => {
-          const translation = translatedContent[b.id]
-          if (translation) {
-            // For translated blocks, wrap them back in their original tags
-            if (['STYLE', 'LINK', 'META', 'NOSCRIPT'].includes(b.tagName)) return translation
-            const tag = b.tagName.toLowerCase()
-            return `<${tag}>${translation}</${tag}>`
+          const translation = (translatedContent[b.id] || '').trim()
+          if (['STYLE', 'LINK', 'META', 'NOSCRIPT'].includes(b.tagName)) return translation
+          const template = document.createElement('template')
+          template.innerHTML = b.html
+          const source = template.content.firstElementChild as HTMLElement | null
+          if (source) {
+            source.innerHTML = translation
+            return source.outerHTML
           }
-          // For the untranslated essential blocks (like reference data), use original HTML
-          return b.html
+          const tag = b.tagName.toLowerCase()
+          return `<${tag}>${translation}</${tag}>`
         })
         .join('')
 
+      // Strip UI-only attributes before serialization. Parsoid rejects
+      // `data-tooltip` (and editor artifacts) in the HTML -> wikitext transform.
+      const container = document.createElement('template')
+      container.innerHTML = fullHtml
+      container.content.querySelectorAll('[data-tooltip], [contenteditable], [data-selected]').forEach((el) => {
+        el.removeAttribute('data-tooltip')
+        el.removeAttribute('contenteditable')
+        el.removeAttribute('data-selected')
+      })
+      const serializableHtml = container.innerHTML
+
       const response = await $fetch<{ wikitext: string }>(`${window.location.origin}${config.app.baseURL}api/wiki/serialize`, {
         method: 'POST',
-        body: { html: fullHtml, title: activeTitle.value }
+        body: { html: serializableHtml, title: targetTitle }
       })
       generatedWikitext.value = response.wikitext
       updateSavedArticlesList()

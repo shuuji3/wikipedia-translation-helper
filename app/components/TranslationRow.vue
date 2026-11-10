@@ -13,6 +13,20 @@ const isEditing = ref(false)
 const isStyleTag = computed(() => props.block.tagName === 'STYLE')
 const isHidden = computed(() => ['LINK', 'META', 'NOSCRIPT'].includes(props.block.tagName))
 
+// Preserve the source element's attributes so translated markup keeps its structure.
+// `id` is excluded to avoid duplicate ids between the source and translation panes.
+const blockAttributes = computed(() => {
+  const template = document.createElement('template')
+  template.innerHTML = props.block.html
+  const el = template.content.firstElementChild as HTMLElement | null
+  if (!el) return {}
+  return Object.fromEntries(
+    Array.from(el.attributes)
+      .filter(attr => attr.name !== 'id')
+      .map(attr => [attr.name, attr.value])
+  )
+})
+
 function handleClick(e: Event) {
   if (isFetching.value || isStyleTag.value) return
 
@@ -116,6 +130,7 @@ function handleBlur(e: Event) {
         <div v-if="!isEditing" class="wikipedia-content">
           <component
             :is="block.tagName"
+            v-bind="blockAttributes"
             v-html="translatedContent[block.id]"
           ></component>
         </div>

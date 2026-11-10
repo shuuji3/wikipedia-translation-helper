@@ -37,7 +37,9 @@ export function useTranslation() {
       return
     }
 
-    const el = document.getElementById(id)
+    const container = document.createElement('div')
+    container.innerHTML = block.html
+    const el = container.firstElementChild as HTMLElement | null
     if (!el) return
 
     const textWithPlaceholders = prepareTranslationText(el, block.vault)
