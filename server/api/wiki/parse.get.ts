@@ -22,7 +22,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const response = await $fetch<string>(url, {
+    const response = await throttledWikiFetch<string>(url, {
       headers: {
         'User-Agent': config.wikipediaUserAgent,
       },
