@@ -65,3 +65,15 @@
 
 ### Phase 10: UX Enhancements
 - [x] Implement Wikipedia article suggestion in the search input.
+
+### Phase 11: Deployment (Cloud Run to Cloudflare Workers)
+- [x] Switch Nitro preset to `cloudflare_module` and bump `compatibilityDate` to `2026-11-10`.
+- [x] Prerender the SPA shell (`index.html`) while keeping the server bundle for `/api/*`.
+- [x] Configure Workers Static Assets so only `/api/*` invokes the Worker (`run_worker_first` + `not_found_handling: single-page-application`).
+- [x] Add `wrangler`/`miniflare` dev deps and `deploy`/`preview` scripts.
+- [x] Replace the Cloud Run GitHub Actions workflow with a Workers deploy.
+- [x] Pin the Worker name to `wikipedia-translation-helper`.
+- [x] Remove Cloud Run artifacts (`Dockerfile`, `.dockerignore`).
+- [x] Document Cloudflare deploy and local preview in the README.
+- [ ] Set `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` repo secrets and create the Worker secrets.
+

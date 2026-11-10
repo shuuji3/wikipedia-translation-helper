@@ -1,4 +1,4 @@
-# 🌐 Wikipedia Translation Helper
+# Wikipedia Translation Helper
 
 A dedicated editor designed to streamline Wikipedia article translation. It automates missing link conversion and utilizes recent improvements in LLM translation performance while maintaining article structure via the MediaWiki Parsoid API.
 
@@ -49,6 +49,44 @@ pnpm dev
 pnpm build
 pnpm preview
 ```
+
+`pnpm preview` serves the built Worker locally through Wrangler (`wrangler dev`).
+
+## Deployment
+
+Deploys to Cloudflare Workers. The frontend bundles and the prerendered SPA shell are served as static assets, so only `/api/*` routes invoke the Worker.
+
+### Local preview secrets
+
+Create a `.dev.vars` file (gitignored) mirroring `.env`:
+
+```ini
+NUXT_GEMINI_API_KEY=your_api_key_here
+NUXT_WIKIPEDIA_USER_AGENT=WikipediaTranslationHelper/1.0 (contact@example.com)
+```
+
+### Production secrets
+
+```bash
+pnpm exec wrangler secret put NUXT_GEMINI_API_KEY
+pnpm exec wrangler secret put NUXT_WIKIPEDIA_USER_AGENT
+```
+
+### Deploy
+
+```bash
+pnpm build
+pnpm deploy
+```
+
+### CI/CD
+
+`.github/workflows/deploy.yml` builds and deploys on push to `main` via `cloudflare/wrangler-action`. Required repository secrets:
+
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `NUXT_GEMINI_API_KEY`
+- `NUXT_WIKIPEDIA_USER_AGENT`
 
 ## Project Structure
 
